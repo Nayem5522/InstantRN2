@@ -1,108 +1,56 @@
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+import os
+import asyncio
 from aiogram import Router, types, F, Bot
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-from config import LOG_CHANNEL
-from database import get_thumbnail, increment_usage, is_banned, add_user
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+from database import get_user_data, increment_usage, set_thumbnail, is_banned
+
 router = Router()
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 
-def small_caps(text: str) -> str:
-    """Convert text to small caps unicode."""
-    normal = "abcdefghijklmnopqrstuvwxyz"
-    small = "ᴀʙᴄᴅᴇғɢʜɪᴊᴋʟᴍɴᴏᴘǫʀsᴛᴜᴠᴡxʏᴢ"
-    result = ""
-    for char in text:
-        if char.lower() in normal:
-            idx = normal.index(char.lower())
-            result += small[idx]
-        else:
-            result += char
-    return result
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+def small_caps(text):
+    mapping = {"a": "ᴀ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "ᴇ", "f": "ꜰ", "g": "ɢ", "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ᴍ", "n": "ɴ", "o": "ᴏ", "p": "ᴘ", "q": "ǫ", "r": "ʀ", "s": "s", "t": "ᴛ", "u": "ᴜ", "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ"}
+    return "".join(mapping.get(c.lower(), c) for c in text)
 
-@router.message(F.video)
-async def handle_video(message: types.Message, bot: Bot):
-    """Handle incoming video and send it back with user's thumbnail as cover."""
+@router.message(F.photo)
+async def direct_photo_handler(message: types.Message):
+    if await is_banned(message.from_user.id): return
+    file_id = message.photo[-1].file_id
+    await set_thumbnail(message.from_user.id, file_id)
+    await message.reply(small_caps("✅ thumbnail saved successfully!"))
+
+@router.message(F.video | F.document)
+async def video_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
-    username = message.from_user.username
-    first_name = message.from_user.first_name
+    if await is_banned(user_id): return
     
-    # Check if banned
-    if await is_banned(user_id):
-        await message.answer(small_caps("You are banned from using this bot."))
-        return
+    user = await get_user_data(user_id)
+    if not user or not user.get("thumbnail"):
+        return await message.reply(small_caps("❌ please set a thumbnail first by sending a photo!"))
+
+    file_obj = message.video or message.document
+    if not file_obj: return
+
+    # Sticker Animation
+    status_sticker = await message.reply_sticker("CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ")
+    await asyncio.sleep(2) 
+
+    # Clean Name
+    raw_name = getattr(file_obj, 'file_name', 'video.mp4')
+    clean_name = os.path.splitext(raw_name)[0].replace("_", " ").replace(".", " ")
     
-    # Add/update user
-    await add_user(user_id, username, first_name)
-    
-    video = message.video
-    
-    # Keep ORIGINAL caption - no modification
-    caption = message.caption or ""
-    
-    # Get user's thumbnail
-    thumb_file_id = await get_thumbnail(user_id)
-    
-    # Build keyboard
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
-    ])
-    
-    if thumb_file_id:
-        # Increment usage count
-        await increment_usage(user_id)
-        
-        # Send video with custom cover
+    # Caption Replace
+    user_caption = user.get("caption", "{filename}")
+    final_caption = user_caption.replace("{filename}", clean_name)
+
+    try:
+        # এখানে reply_markup দেওয়া হয়নি, তাই ভিডিওর নিচে কোনো বাটন থাকবে না
         await bot.send_video(
             chat_id=message.chat.id,
-            video=video.file_id,
-            caption=caption,
-            cover=thumb_file_id,
-            reply_markup=keyboard
+            video=file_obj.file_id,
+            caption=final_caption,
+            cover=user["thumbnail"],
+            supports_streaming=True
         )
-        
-        # Log video to log channel
-        if LOG_CHANNEL:
-            try:
-                await bot.send_message(
-                    chat_id=LOG_CHANNEL,
-                    text=f"📹 <b>ᴠɪᴅᴇᴏ ᴘʀᴏᴄᴇssᴇᴅ</b>\n\n"
-                         f"🆔 <code>{user_id}</code>\n"
-                         f"👤 {first_name} (@{username or 'N/A'})\n"
-                         f"📝 {caption[:50] + '...' if len(caption) > 50 else caption or 'No caption'}",
-                    parse_mode="HTML"
-                )
-            except Exception:
-                pass
-    else:
-        # No thumbnail set - send warning
-        await message.answer(
-            f"<b>⚠️ {small_caps('No thumbnail set!')}</b>\n\n"
-            f"<blockquote>{small_caps('Please set a thumbnail first using Settings.')}</blockquote>",
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+        await increment_usage(user_id, file_obj.file_id)
+    except Exception as e:
+        await message.reply(f"❌ Error: {str(e)}")
+    finally:
+        await status_sticker.delete()
