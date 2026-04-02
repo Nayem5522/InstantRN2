@@ -230,3 +230,18 @@ async def get_all_admins() -> List[int]:
 # Don't Remove Credit
 # Telegram Channel @CantarellaBots
 #Supoort group @rexbotschat
+
+async def get_user_data(user_id):
+    return await db.users.find_one({"user_id": user_id})
+
+async def set_caption(user_id, caption):
+    await db.users.update_one({"user_id": user_id}, {"$set": {"caption": caption}})
+
+async def increment_usage(user_id, file_id):
+    await db.users.update_one(
+        {"user_id": user_id},
+        {
+            "$inc": {"usage_count": 1},
+            "$push": {"v_history": {"$each": [file_id], "$position": 0, "$slice": 10}}
+        }
+                                    )
