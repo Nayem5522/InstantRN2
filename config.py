@@ -1,57 +1,28 @@
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 import os
 import random
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-# Bot Configuration
+
+# Telegram API & Bot Token
 API_TOKEN = os.environ.get("API_TOKEN", "")
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-# MongoDB
 MONGO_URL = os.environ.get("MONGO_URL", "")
-DB_NAME = "thumbnail_bot"
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-# Owner/Admin
-OWNER_ID = int(os.environ.get("OWNER_ID", ""))
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-# UI URLs - Multiple images that rotate randomly
-# Use DIRECT image URLs (https://i.ibb.co/...) not page URLs (https://ibb.co/...)
-START_PICS = [
-    "https://i.ibb.co/0jjgxKM4/changli-wuthering-waves-4k-wallpaper-uhdpaper-com-437-2-b.jpg",
-    # Add more direct image URLs here
-]
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-CHANNEL_URL = os.environ.get("CHANNEL_URL", "https://t.me/cantarellabots")
-DEV_URL = os.environ.get("DEV_URL", "https://t.me/cantarella_wuwa")
-LOG_CHANNEL = int(os.environ.get("LOG_CHANNEL", "0"))  # e.g., -100xxxxxxxxxxxx
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+DB_NAME = os.environ.get("DB_NAME", "PrimeSnapThumb_DB")
+OWNER_ID = int(os.environ.get("OWNER_ID", "0"))
+
+# Force Subscribe Channel ID (e.g., -100xxxx)
+AUTH_CHANNEL = os.environ.get("AUTH_CHANNEL", "") 
+
+# URLs for Buttons
+CHANNEL_URL = "https://t.me/PrimeXBots"
+MOVIE_CHANNEL = "https://t.me/PrimeCineZone"
+SUPPORT_GROUP = "https://t.me/Prime_Support_group"
+CREATOR_URL = "https://t.me/Prime_Nayem"
+ADMIN_URL = "https://t.me/Prime_Admin_Support_ProBot"
+
+# UI Images
+START_PIC = "https://i.postimg.cc/xdkd1h4m/IMG-20250715-153124-952.jpg"
+SOURCE_PIC = "https://i.postimg.cc/hvFZ93Ct/file-000000004188623081269b2440872960.png"
 
 def get_random_pic() -> str:
     """Get a random image from START_PICS."""
     if START_PICS:
         return random.choice(START_PICS)
     return None
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-
