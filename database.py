@@ -33,9 +33,9 @@ async def add_user(user_id: int, username: str = None, first_name: str = None):
             "$set": {"username": username, "first_name": first_name},
             "$setOnInsert": {
                 "user_id": user_id,
-                "thumbnail": None,
-                "caption": "{filename}",
-                "watermark": None,
+                "thumbnail": None,       # thumbnail_file_id এর বদলে শুধু thumbnail
+                "caption": "{filename}", # ডিফল্ট ক্যাপশন
+                "watermark": None,      # ডিফল্ট ওয়াটারমার্ক অফ
                 "usage_count": 0,
                 "banned": False
             }
@@ -43,30 +43,34 @@ async def add_user(user_id: int, username: str = None, first_name: str = None):
         upsert=True
     )
 
-
-async def get_user_data(user_id: int):
-    return await db.users.find_one({"user_id": user_id})
-
-async def get_user(user_id: int):
-    return await db.users.find_one({"user_id": user_id})
-    
 # ================= SETTINGS =================
 async def set_thumbnail(user_id: int, file_id: str):
-    await db.users.update_one({"user_id": user_id}, {"$set": {"thumbnail": file_id}})
-
+    await db.users.update_one(
+        {"user_id": user_id}, 
+        {"$set": {"thumbnail": file_id}}
+         )
 
 async def set_caption(user_id: int, caption: str):
     await db.users.update_one({"user_id": user_id}, {"$set": {"caption": caption}})
 
 
+# ইউজার ডাটা কল করার জন্য (এটি video.py তে ব্যবহার হয়েছে)
+async def get_user_data(user_id: int):
+    return await db.users.find_one({"user_id": user_id})
+
+# ওয়াটারমার্ক টেক্সট সেভ করার জন্য
 async def set_watermark(user_id: int, text: str):
-    await db.users.update_one({"user_id": user_id}, {"$set": {"watermark": text}})
+    await db.users.update_one(
+        {"user_id": user_id}, 
+        {"$set": {"watermark": text}}
+    )
 
-
-# ================= USAGE =================
+# ভিডিও প্রসেসিং কাউন্ট করার জন্য
 async def increment_usage(user_id: int):
-    await db.users.update_one({"user_id": user_id}, {"$inc": {"usage_count": 1}})
-
+    await db.users.update_one(
+        {"user_id": user_id}, 
+        {"$inc": {"usage_count": 1}}
+    )
 
 async def get_user_count():
     return await db.users.count_documents({})
