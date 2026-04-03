@@ -10,7 +10,7 @@ def small_caps(text):
     mapping = {"a": "ᴀ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "ᴇ", "f": "ꜰ", "g": "ɢ", "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ᴍ", "n": "ɴ", "o": "ᴏ", "p": "ᴘ", "q": "ǫ", "r": "ʀ", "s": "s", "t": "ᴛ", "u": "ᴜ", "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ"}
     return "".join(mapping.get(c.lower(), c) for c in text)
 
-# --- ওয়াটারমার্ক প্রসেসিং (শুধুমাত্র যখন ওয়াটারমার্ক অন থাকবে) ---
+# --- ওয়াটারমার্ক ফাংশন ---
 async def apply_watermark(bot, photo_file_id, text):
     path = f"wm_{time.time()}.jpg"
     file = await bot.get_file(photo_file_id)
@@ -45,28 +45,36 @@ async def set_wm_cmd(message: types.Message):
     await set_watermark(message.from_user.id, args[1])
     await message.reply(f"✅ {small_caps('watermark text saved:')} <code>{args[1]}</code>\n{small_caps('enable it from /settings')}", parse_mode="HTML")
 
-# --- এক্সট্র্যাক্ট কমান্ড (রিপ্লাই সিস্টেম) ---
+# --- এক্সট্র্যাক্ট কমান্ড (উন্নত রিপ্লাই সিস্টেম) ---
 @router.message(Command("extract"))
 async def extract_handler(message: types.Message, bot: Bot):
     if await is_banned(message.from_user.id): return
     
-    # রিপ্লাই চেক
-    if not message.reply_to_message or not (message.reply_to_message.video or message.reply_to_message.document):
-        return await message.reply(small_caps("❌ reply to a video with /extract to get its thumbnail!"))
+    # চেক করা হচ্ছে এটি কোনো মেসেজের রিপ্লাই কিনা
+    if not message.reply_to_message:
+        return await message.reply(small_caps("❌ please reply to a video or file with /extract to get its thumbnail!"))
 
+    # ভিডিও বা ডকুমেন্ট অবজেক্ট খুঁজে বের করা
     target = message.reply_to_message.video or message.reply_to_message.document
-    if not target.thumbnail:
+    
+    # যদি রিপ্লাই করা মেসেজে কোনো ফাইল না থাকে
+    if not target:
+        return await message.reply(small_caps("❌ the replied message does not contain a valid video or file!"))
+
+    # ফাইলের থাম্বনেইল আছে কিনা চেক করা
+    if not hasattr(target, 'thumbnail') or not target.thumbnail:
         return await message.reply(small_caps("❌ no thumbnail found in this file!"))
 
+    # থাম্বনেইল পাঠানো
     btn = [[types.InlineKeyboardButton(text="🖼️ USE THIS AS THUMBNAIL", callback_data=f"use_this_{target.thumbnail.file_id}")]]
     await bot.send_photo(
         chat_id=message.chat.id,
         photo=target.thumbnail.file_id,
-        caption=small_caps("✅ thumbnail extracted successfully!"),
+        caption=small_caps("✅ thumbnail extracted successfully! click the button below to save it."),
         reply_markup=types.InlineKeyboardMarkup(inline_keyboard=btn)
     )
 
-# --- মেইন ভিডিও হ্যান্ডলার (আপনার অরিজিনাল কোড অনুযায়ী) ---
+# --- মেইন ভিডিও হ্যান্ডলার (আপনার অরিজিনাল কভার লজিক সহ) ---
 @router.message(F.video | F.document)
 async def video_handler(message: types.Message, bot: Bot):
     user_id = message.from_user.id
@@ -78,14 +86,11 @@ async def video_handler(message: types.Message, bot: Bot):
 
     file_obj = message.video or message.document
     
-    # Sticker Animation
     status_sticker = await message.reply_sticker("CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ")
 
-    # Clean Name
     raw_name = getattr(file_obj, 'file_name', 'video.mp4')
     clean_name = os.path.splitext(raw_name)[0].replace("_", " ").replace(".", " ")
     
-    # Caption Logic
     user_caption = user.get("caption", "{filename}")
     if user.get("caption_on", True):
         final_caption = user_caption.replace("{filename}", clean_name)
@@ -96,12 +101,12 @@ async def video_handler(message: types.Message, bot: Bot):
     thumb_id = user["thumbnail"]
 
     try:
-        # যদি ওয়াটারমার্ক অন থাকে তবেই ছবি প্রসেস হবে
+        # ওয়াটারমার্ক অন থাকলে এডিট করা ছবি ব্যবহার হবে
         if user.get("watermark_on") and user.get("watermark"):
             temp_path = await apply_watermark(bot, thumb_id, user["watermark"])
             cover_to_send = types.FSInputFile(temp_path)
         else:
-            # যদি ওয়াটারমার্ক অফ থাকে তবে সরাসরি file_id ব্যবহার হবে (দ্রুততম পদ্ধতি)
+            # ওয়াটারমার্ক অফ থাকলে সরাসরি file_id (অরিজিনাল পদ্ধতি)
             cover_to_send = thumb_id
 
         if message.video:
@@ -109,11 +114,10 @@ async def video_handler(message: types.Message, bot: Bot):
                 chat_id=message.chat.id,
                 video=file_obj.file_id,
                 caption=final_caption,
-                cover=cover_to_send, # অরিজিনাল কভার প্যারামিটার
+                cover=cover_to_send, # আপনার অরিজিনাল দ্রুত মেথড
                 supports_streaming=True
             )
         else:
-            # ডকুমেন্টের জন্য thumbnail প্যারামিটার ব্যবহার হয়
             await bot.send_document(
                 chat_id=message.chat.id,
                 document=file_obj.file_id,
@@ -129,11 +133,10 @@ async def video_handler(message: types.Message, bot: Bot):
         if temp_path and os.path.exists(temp_path):
             os.remove(temp_path)
 
-# --- বাটন কলব্যাক ---
+# --- থাম্বনেইল সেভ করার কলব্যাক ---
 @router.callback_query(F.data.startswith("use_this_"))
 async def use_extracted_thumb(query: types.CallbackQuery):
     file_id = query.data.replace("use_this_", "")
     await set_thumbnail(query.from_user.id, file_id)
-    await query.answer("✅ Thumbnail Set Successfully!", show_alert=True)
-    await query.message.edit_caption(caption=small_caps("✅ this is now your default thumbnail!"))
-    
+    await query.answer("✅ Permanent Thumbnail Updated!", show_alert=True)
+    await query.message.edit_caption(caption=small_caps("✅ this extracted thumbnail is now saved as your default!"))
