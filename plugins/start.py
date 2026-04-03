@@ -12,19 +12,17 @@ def small_caps(text):
 
 def get_start_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu")],
         [
-            InlineKeyboardButton(text="✪ ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ ✪", url=SUPPORT_GROUP),
-            InlineKeyboardButton(text="〄 ᴍᴏᴠɪᴇ ᴄʜᴀɴɴᴇʟ 〄", url=MOVIE_CHANNEL)
+            InlineKeyboardButton(text="〄 ᴍᴏᴠɪᴇ ᴄʜᴀɴɴᴇʟ 〄", url=MOVIE_CHANNEL),
+            InlineKeyboardButton(text="✪ ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ ✪", url=SUPPORT_GROUP)
         ],
         [InlineKeyboardButton(text="〄 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ 〄", url=CHANNEL_URL)],
         [
             InlineKeyboardButton(text="〆 ʜᴇʟᴘ 〆", callback_data="help_cmd"),
             InlineKeyboardButton(text="〆 ᴀʙᴏᴜᴛ 〆", callback_data="about_cmd")
         ],
-        [
-            InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu"),
-            InlineKeyboardButton(text="✧ ᴄʀᴇᴀᴛᴏʀ ✧", url=CREATOR_URL)
-        ]
+        [InlineKeyboardButton(text="✧ ᴄʀᴇᴀᴛᴏʀ ✧", url=CREATOR_URL)]
     ])
 
 @router.message(Command("start"))
@@ -79,3 +77,26 @@ async def back_home(query: types.CallbackQuery):
 @router.callback_query(F.data == "closes")
 async def closes(query: types.CallbackQuery):
     await query.message.delete()
+
+@router.callback_query(F.data == "help_cmd")
+async def help_handler(query: types.CallbackQuery):
+    help_text = (
+        f"<b>📖 {small_caps('how to use this bot')}</b>\n\n"
+        f"1. <b>sᴇɴᴅ ᴀ ᴘʜᴏᴛᴏ:</b> sᴇɴᴅ ᴀɴʏ ɪᴍᴀɢᴇ ᴛᴏ sᴇᴛ ɪᴛ ᴀs ʏᴏᴜʀ ᴄᴜsᴛᴏᴍ ᴛʜᴜᴍʙɴᴀɪʟ.\n"
+        f"2. <b>sᴇɴᴅ ᴠɪᴅᴇᴏ/ᴅᴏᴄ:</b> ғᴏʀᴡᴀʀᴅ ᴏʀ ᴜᴘʟᴏᴀᴅ ᴀɴʏ ᴠɪᴅᴇᴏ ᴛᴏ ᴛʜᴇ ʙᴏᴛ.\n"
+        f"3. <b>ɪɴsᴛᴀɴᴛ ʀᴇsᴜʟᴛ:</b> ᴛʜᴇ ʙᴏᴛ ᴡɪʟʟ ᴘʀᴏᴄᴇss ᴀɴᴅ ʀᴇᴘʟʏ ᴡɪᴛʜ ʏᴏᴜʀ ᴄᴜsᴛᴏᴍ ᴛʜᴜᴍʙɴᴀɪʟ.\n\n"
+        f"📝 <b>sᴇᴛ ᴄᴀᴘᴛɪᴏɴ:</b> ᴜsᴇ <code>/set_caption [text]</code> ᴛᴏ ᴀᴅᴅ ᴀ ᴄᴜsᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ.\n"
+        f"💡 <i>ᴛɪᴘ: ᴜsᴇ</i> <code>{{filename}}</code> <i>ɪɴ ᴄᴀᴘᴛɪᴏɴ ᴛᴏ ᴋᴇᴇᴘ ᴛʜᴇ ᴏʀɪɢɪɴᴀʟ ɴᴀᴍᴇ.</i>\n\n"
+        f"⚙️ ᴜsᴇ ᴛʜᴇ sᴇᴛᴛɪɴɢs ʙᴜᴛᴛᴏɴ ʙᴇʟᴏᴡ ᴛᴏ ᴍᴀɴᴀɢᴇ ʏᴏᴜʀ ᴅᴀᴛᴀ."
+    )
+    
+    buttons = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu")],
+        [InlineKeyboardButton(text="🔙 ʙᴀᴄᴋ", callback_data="back_home")]
+    ])
+    
+    await query.message.edit_caption(
+        caption=help_text, 
+        reply_markup=buttons, 
+        parse_mode="HTML"
+    )
