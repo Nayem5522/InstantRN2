@@ -33,9 +33,11 @@ async def add_user(user_id: int, username: str = None, first_name: str = None):
             "$set": {"username": username, "first_name": first_name},
             "$setOnInsert": {
                 "user_id": user_id,
-                "thumbnail": None,       # thumbnail_file_id এর বদলে শুধু thumbnail
-                "caption": "{filename}", # ডিফল্ট ক্যাপশন
-                "watermark": None,      # ডিফল্ট ওয়াটারমার্ক অফ
+                "thumbnail": None,
+                "caption": "{filename}",
+                "watermark": None,
+                "caption_on": True,   # নতুন: ক্যাপশন ডিফল্টভাবে ON
+                "watermark_on": False, # নতুন: ওয়াটারমার্ক ডিফল্টভাবে OFF
                 "usage_count": 0,
                 "banned": False
             }
@@ -131,4 +133,16 @@ async def is_admin(user_id: int) -> bool:
 async def get_all_admins() -> List[int]:
     admins = await db.admins.find().to_list(length=None)
     return [a["user_id"] for a in admins]
+    
+
+async def toggle_setting(user_id: int, field: str):
+    """ক্যাপশন বা ওয়াটারমার্ক অন/অফ করার ফাংশন"""
+    user = await db.users.find_one({"user_id": user_id})
+    current_status = user.get(field, False)
+    # স্ট্যাটাস উল্টে দেওয়া (True থাকলে False, False থাকলে True)
+    await db.users.update_one(
+        {"user_id": user_id}, 
+        {"$set": {field: not current_status}}
+    )
+    return not current_status
     
