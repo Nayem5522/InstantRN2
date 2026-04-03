@@ -15,33 +15,38 @@ def small_caps(text):
     mapping = {"a": "ᴀ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "ᴇ", "f": "ꜰ", "g": "ɢ", "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ᴍ", "n": "ɴ", "o": "ᴏ", "p": "ᴘ", "q": "ǫ", "r": "ʀ", "s": "s", "t": "ᴛ", "u": "ᴜ", "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ"}
     return "".join(mapping.get(c.lower(), c) for c in text)
 
-# --- ওয়াটারমার্ক ফাংশন ---
+# --- বুদ্ধিমান ওয়াটারমার্ক ফাংশন ---
 async def apply_watermark(bot, photo_file_id, text):
     path = f"temp_{time.time()}.jpg"
-    await bot.download(photo_file_id, destination=path)
+    file = await bot.get_file(photo_file_id)
+    await bot.download_file(file.file_path, path)
     
     with Image.open(path) as img:
+        img = img.convert("RGB")
         draw = ImageDraw.Draw(img)
         width, height = img.size
-        # সাধারণ ফন্ট সাইজ (ছবির ১০% সাইজ অনুযায়ী)
-        font_size = int(height * 0.05)
+        
+        # ডাইনামিক ফন্ট সাইজ
+        font_size = int(height * 0.04)
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
+            # সার্ভারে অনেক সময় arial থাকে না, তাই ডিফল্ট ফন্ট হ্যান্ডেল করা হয়েছে
+            font = ImageFont.load_default()
         except:
             font = ImageFont.load_default()
         
-        # ডানদিকের নিচে ওয়াটারমার্ক বসানো
+        # ওয়াটারমার্কের টেক্সট সাইজ বের করা
         text_bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = text_bbox[2] - text_bbox[0]
-        text_height = text_bbox[3] - text_bbox[1]
+        tw = text_bbox[2] - text_bbox[0]
+        th = text_bbox[3] - text_bbox[1]
         
-        x = width - text_width - 20
-        y = height - text_height - 20
+        # বটম রাইট পজিশন
+        x, y = width - tw - 25, height - th - 25
         
-        # হালকা ব্যাকগ্রাউন্ড বক্স (যাতে টেক্সট বোঝা যায়)
-        draw.rectangle([x-5, y-5, x+text_width+5, y+text_height+5], fill=(0,0,0,100))
-        draw.text((x, y), text, font=font, fill=(255, 255, 255, 200))
-        img.save(path)
+        # টেক্সটের নিচে একটি হালকা কালো আভা দেওয়া (Background overlay)
+        draw.rectangle([x-5, y-5, x+tw+5, y+th+5], fill=(0,0,0,120))
+        draw.text((x, y), text, font=font, fill=(255, 255, 255))
+        
+        img.save(path, "JPEG", quality=95)
     
     return path
 
@@ -56,32 +61,26 @@ async def direct_photo_handler(message: types.Message):
 # --- এক্সট্র্যাক্ট কমান্ড ---
 @router.message(Command("extract"))
 async def extract_cmd(message: types.Message, state: FSMContext):
+    if await is_banned(message.from_user.id): return
     await message.reply(small_caps("📤 send the video now to extract its thumbnail!"))
     await state.set_state(VideoStates.waiting_for_extract)
 
 # --- ওয়াটারমার্ক সেট করা ---
 @router.message(Command("watermark"))
 async def set_wm_cmd(message: types.Message):
+    if await is_banned(message.from_user.id): return
     args = message.text.split(None, 1)
-
     if len(args) < 2:
-        return await message.reply(
-            small_caps("❌ usage: /watermark @PrimeXBots")
-        )
-
+        return await message.reply(small_caps("❌ usage: /watermark @PrimeXBots\nTo disable: /watermark off"))
+    
     wm_text = args[1].strip()
+    if wm_text.lower() == "off":
+        await set_watermark(message.from_user.id, None)
+        await message.reply(small_caps("✅ watermark disabled!"))
+    else:
+        await set_watermark(message.from_user.id, wm_text)
+        await message.reply(f"✅ {small_caps('watermark set to:')} <code>{wm_text}</code>", parse_mode="HTML")
 
-    await set_watermark(message.from_user.id, wm_text)
-    await message.reply(
-        f"✅ {small_caps('watermark set to:')} <code>{wm_text}</code>",
-        parse_mode="HTML"
-    )
-
-
-@router.message(Command("watermark_off"))
-async def remove_wm_cmd(message: types.Message):
-    await set_watermark(message.from_user.id, None)
-    await message.reply(small_caps("✅ watermark disabled!"))
 # --- ভিডিও এবং ডকুমেন্ট হ্যান্ডলার ---
 @router.message(F.video | F.document)
 async def video_handler(message: types.Message, bot: Bot, state: FSMContext):
@@ -92,34 +91,40 @@ async def video_handler(message: types.Message, bot: Bot, state: FSMContext):
     file_obj = message.video or message.document
     if not file_obj: return
 
-    # যদি এক্সট্র্যাক্ট মোড চালু থাকে
+    # --- এক্সট্র্যাক্ট লজিক ---
     if current_state == VideoStates.waiting_for_extract:
         await state.clear()
         if not file_obj.thumbnail:
-            return await message.reply(small_caps("❌ this file doesn't have a thumbnail to extract!"))
+            return await message.reply(small_caps("❌ this file has no thumbnail to extract!"))
         
         btn = [[types.InlineKeyboardButton(text="🖼️ USE THIS AS THUMBNAIL", callback_data=f"use_this_{file_obj.thumbnail.file_id}")]]
         markup = types.InlineKeyboardMarkup(inline_keyboard=btn)
-        return await bot.send_photo(chat_id=user_id, photo=file_obj.thumbnail.file_id, caption=small_caps("extracted thumbnail!"), reply_markup=markup)
+        return await bot.send_photo(chat_id=user_id, photo=file_obj.thumbnail.file_id, caption=small_caps("here is the extracted thumbnail!"), reply_markup=markup)
 
-    # সাধারণ থাম্বনেইল প্রসেসিং
+    # --- রেগুলার প্রসেসিং লজিক ---
     user = await get_user_data(user_id)
     if not user or not user.get("thumbnail"):
-        return await message.reply(small_caps("❌ please set a thumbnail first by sending a photo!"))
+        return await message.reply(small_caps("❌ please set a thumbnail first!"))
 
-    status_sticker = await message.reply_sticker("CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ")
+    sticker = await message.reply_sticker("CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ")
     
-    raw_name = getattr(file_obj, 'file_name', 'video.mp4')
-    clean_name = os.path.splitext(raw_name)[0].replace("_", " ").replace(".", " ")
-    user_caption = user.get("caption", "{filename}")
-    final_caption = user_caption.replace("{filename}", clean_name)
+    file_name = getattr(file_obj, 'file_name', 'video.mp4')
+    clean_name = os.path.splitext(file_name)[0].replace("_", " ").replace(".", " ")
+    caption_template = user.get("caption", "{filename}")
+    final_caption = caption_template.replace("{filename}", clean_name)
 
-    # ওয়াটারমার্ক থাকলে সেটি যোগ করা
-    thumb_to_use = user["thumbnail"]
-    temp_path = None
+    # ওয়াটারমার্ক চেক
+    thumb_id = user["thumbnail"]
+    temp_file = None
     if user.get("watermark"):
-        temp_path = await apply_watermark(bot, thumb_to_use, user["watermark"])
-        thumb_to_use = types.FSInputFile(temp_path)
+        try:
+            temp_file = await apply_watermark(bot, thumb_id, user["watermark"])
+            thumb_input = types.FSInputFile(temp_file)
+        except Exception as e:
+            print(f"Watermark Error: {e}")
+            thumb_input = thumb_id
+    else:
+        thumb_input = thumb_id
 
     try:
         if message.video:
@@ -127,7 +132,7 @@ async def video_handler(message: types.Message, bot: Bot, state: FSMContext):
                 chat_id=message.chat.id,
                 video=file_obj.file_id,
                 caption=final_caption,
-                thumbnail=thumb_to_use,
+                thumbnail=thumb_input,
                 supports_streaming=True
             )
         else:
@@ -135,20 +140,21 @@ async def video_handler(message: types.Message, bot: Bot, state: FSMContext):
                 chat_id=message.chat.id,
                 document=file_obj.file_id,
                 caption=final_caption,
-                thumbnail=thumb_to_use
+                thumbnail=thumb_input
             )
         await increment_usage(user_id)
     except Exception as e:
         await message.reply(f"❌ Error: {str(e)}")
     finally:
-        await status_sticker.delete()
-        if temp_path and os.path.exists(temp_path): os.remove(temp_path)
+        await sticker.delete()
+        if temp_file and os.path.exists(temp_file):
+            os.remove(temp_file)
 
-# --- থাম্বনেইল বাটনের কলব্যাক ---
+# --- বাটন কলব্যাক ---
 @router.callback_query(F.data.startswith("use_this_"))
-async def use_extracted_thumb(query: types.CallbackQuery):
-    file_id = query.data.replace("use_this_", "")
-    await set_thumbnail(query.from_user.id, file_id)
-    await query.answer("✅ Thumbnail Set Successfully!", show_alert=True)
-    await query.message.edit_caption(caption=small_caps("✅ this is now your default thumbnail!"))
-    
+async def cb_use_thumb(query: types.CallbackQuery):
+    thumb_id = query.data.replace("use_this_", "")
+    await set_thumbnail(query.from_user.id, thumb_id)
+    await query.answer("✅ Thumbnail Updated!", show_alert=True)
+    await query.message.edit_caption(caption=small_caps("✅ this thumbnail is now saved as your default!"))
+
