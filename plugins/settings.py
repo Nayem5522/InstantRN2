@@ -26,12 +26,14 @@ async def settings_handler(event):
     
     user = await get_user_data(user_id)
     thumb_status = "✅ Set" if user and user.get("thumbnail") else "❌ Not Set"
+    wm_status = user.get("watermark") if user.get("watermark") else "❌ Disabled"
     cap_status = user.get("caption", "{filename}")
 
     text = (
         f"<b>⚙️ {small_caps('bot settings')}</b>\n\n"
         f"🖼️ <b>ᴛʜᴜᴍʙɴᴀɪʟ:</b> <code>{thumb_status}</code>\n"
-        f"📝 <b>ᴄᴀᴘᴛɪᴏɴ:</b> <code>{cap_status}</code>\n\n"
+        f"📝 <b>ᴄᴀᴘᴛɪᴏɴ:</b> <code>{cap_status}</code>\n"
+        f"⚡ <b>ᴡᴀᴛᴇʀᴍᴀʀᴋ:</b> <code>{wm_status}</code>\n\n"
         f"{small_caps('choose an option to modify:')}"
     )
 
