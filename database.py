@@ -47,7 +47,9 @@ async def add_user(user_id: int, username: str = None, first_name: str = None):
 async def get_user_data(user_id: int):
     return await db.users.find_one({"user_id": user_id})
 
-
+async def get_user(user_id: int):
+    return await db.users.find_one({"user_id": user_id})
+    
 # ================= SETTINGS =================
 async def set_thumbnail(user_id: int, file_id: str):
     await db.users.update_one({"user_id": user_id}, {"$set": {"thumbnail": file_id}})
