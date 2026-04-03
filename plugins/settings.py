@@ -1,7 +1,7 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_user_data, set_caption, is_banned, toggle_setting
+from database import get_user_data, set_caption, is_banned, toggle_setting, remove_thumbnail
 
 router = Router()
 
@@ -13,13 +13,20 @@ def get_settings_buttons(user_data):
     cap_on = "✅ ON" if user_data.get("caption_on", True) else "❌ OFF"
     wm_on = "✅ ON" if user_data.get("watermark_on", False) else "❌ OFF"
     
-    return InlineKeyboardMarkup(inline_keyboard=[
+    keyboard = [
         [InlineKeyboardButton(text=f"📝 Caption: {cap_on}", callback_data="toggle_caption")],
         [InlineKeyboardButton(text=f"⚡ Watermark: {wm_on}", callback_data="toggle_watermark")],
-        [InlineKeyboardButton(text="🖼️ View Thumbnail", callback_data="view_thumb")],
-        [InlineKeyboardButton(text="📊 My Stats", callback_data="history_callback")],
-        [InlineKeyboardButton(text="🔙 Back", callback_data="back_home")]
-    ])
+        [InlineKeyboardButton(text="🖼️ View Thumbnail", callback_data="view_thumb")]
+    ]
+    
+    # যদি থাম্বনেইল সেট করা থাকে তবেই ডিলিট বাটন দেখাবে
+    if user_data.get("thumbnail"):
+        keyboard.append([InlineKeyboardButton(text="🗑️ Delete Thumbnail", callback_data="delete_thumb")])
+        
+    keyboard.append([InlineKeyboardButton(text="📊 My Stats", callback_data="history_callback")])
+    keyboard.append([InlineKeyboardButton(text="🔙 Back", callback_data="back_home")])
+    
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 @router.message(Command("settings"))
 @router.callback_query(F.data == "settings_menu")
@@ -55,11 +62,18 @@ async def toggle_cap_cb(query: types.CallbackQuery):
 async def toggle_wm_cb(query: types.CallbackQuery):
     user = await get_user_data(query.from_user.id)
     if not user.get("watermark"):
-        return await query.answer("❌ Please set a watermark text first using /watermark", show_alert=True)
+        return await query.answer("❌ Set watermark text first using /watermark", show_alert=True)
     await toggle_setting(query.from_user.id, "watermark_on")
     user = await get_user_data(query.from_user.id)
     await query.message.edit_reply_markup(reply_markup=get_settings_buttons(user))
     await query.answer("Watermark Toggled!")
+
+@router.callback_query(F.data == "delete_thumb")
+async def delete_thumb_cb(query: types.CallbackQuery):
+    await remove_thumbnail(query.from_user.id)
+    user = await get_user_data(query.from_user.id)
+    await query.message.edit_reply_markup(reply_markup=get_settings_buttons(user))
+    await query.answer("✅ Thumbnail Deleted Successfully!", show_alert=True)
 
 @router.callback_query(F.data == "view_thumb")
 async def view_thumb(query: types.CallbackQuery):
@@ -73,3 +87,4 @@ async def view_thumb(query: types.CallbackQuery):
 async def history_callback(query: types.CallbackQuery):
     user = await get_user_data(query.from_user.id)
     await query.answer(f"Total Processed: {user.get('usage_count', 0)}", show_alert=True)
+    
