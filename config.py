@@ -18,7 +18,7 @@ CREATOR_URL = "https://t.me/Prime_Nayem"
 ADMIN_URL = "https://t.me/Prime_Admin_Support_ProBot"
 
 # UI Images
-START_PIC = "https://i.postimg.cc/xdkd1h4m/IMG-20250715-153124-952.jpg"
+START_PIC = "https://i.postimg.cc/DzfVh49m/file-000000009e2471fab7304fc4d4b26799.png"
 SOURCE_PIC = "https://i.postimg.cc/hvFZ93Ct/file-000000004188623081269b2440872960.png"
 
 def get_random_pic() -> str:
