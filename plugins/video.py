@@ -22,28 +22,31 @@ async def apply_watermark(bot, photo_file_id, text):
         draw = ImageDraw.Draw(img)
         width, height = img.size
 
-        # বড় font
-        font_size = int(width / 15)
+        # 🔥 SUPER BIG FONT
+        font_size = int(width / 8)   # আগের চেয়ে অনেক বড়
+
         try:
-            font = ImageFont.truetype("arial.ttf", font_size)
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", font_size)
         except:
             font = ImageFont.load_default()
 
-        # text size
         text_bbox = draw.textbbox((0, 0), text, font=font)
         tw, th = text_bbox[2] - text_bbox[0], text_bbox[3] - text_bbox[1]
 
-        # center position
+        # center bottom (visible)
         x = (width - tw) // 2
-        y = height - th - 50
+        y = height - th - 80
 
-        padding = 15
+        # 🔥 BLACK BOX (strong visibility)
         draw.rectangle(
-            [x - padding, y - padding, x + tw + padding, y + th + padding],
+            [x - 25, y - 25, x + tw + 25, y + th + 25],
             fill=(0, 0, 0)
         )
 
-        draw.text((x, y), text, font=font, fill=(255, 255, 255))
+        # 🔥 WHITE TEXT + BORDER EFFECT
+        draw.text((x-2, y-2), text, font=font, fill=(0,0,0))
+        draw.text((x+2, y+2), text, font=font, fill=(0,0,0))
+        draw.text((x, y), text, font=font, fill=(255,255,255))
 
         img.save(path, "JPEG", quality=95)
 
@@ -77,34 +80,41 @@ async def extract_handler(message: types.Message, bot: Bot):
     if await is_banned(message.from_user.id): return
 
     if not message.reply_to_message:
-        return await message.reply(small_caps("❌ reply to a video/file!"))
+        return await message.reply("❌ Reply to a video or file!")
 
     target = message.reply_to_message.video or message.reply_to_message.document
 
     if not target:
-        return await message.reply(small_caps("❌ invalid file!"))
+        return await message.reply("❌ No valid file found!")
 
-    # 🔥 FIXED THUMB DETECTION
+    # 🔥 DEBUG MESSAGE (important)
+    await message.reply("⏳ Extracting thumbnail...")
+
     thumb = None
-    if hasattr(target, "thumbnail") and target.thumbnail:
-        thumb = target.thumbnail
-    elif hasattr(target, "thumb") and target.thumb:
-        thumb = target.thumb
 
+    try:
+        if getattr(target, "thumbnail", None):
+            thumb = target.thumbnail
+        elif getattr(target, "thumb", None):
+            thumb = target.thumb
+    except Exception as e:
+        return await message.reply(f"❌ Error: {e}")
+
+    # ❗ যদি thumbnail না থাকে
     if not thumb:
-        return await message.reply(small_caps("❌ no thumbnail found!"))
+        return await message.reply("❌ This file has NO thumbnail!")
 
     btn = [[types.InlineKeyboardButton(
-        text="🖼️ USE THIS AS THUMBNAIL",
+        text="🖼️ USE THIS",
         callback_data=f"use_this_{thumb.file_id}"
     )]]
 
     await bot.send_photo(
         chat_id=message.chat.id,
         photo=thumb.file_id,
-        caption=small_caps("✅ thumbnail extracted successfully!"),
+        caption="✅ Thumbnail Extracted!",
         reply_markup=types.InlineKeyboardMarkup(inline_keyboard=btn)
-    )
+        )
 
 # --- MAIN VIDEO HANDLER ---
 @router.message(F.video | F.document)
