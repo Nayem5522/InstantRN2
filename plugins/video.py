@@ -5,6 +5,7 @@ from database import get_user_data, increment_usage, set_thumbnail, is_banned, s
 from PIL import Image, ImageDraw, ImageFont
 
 router = Router()
+TEMP_THUMBS = {}
 
 # --- Small Caps ---
 def small_caps(text):
@@ -101,14 +102,20 @@ async def extract_handler(message: types.Message, bot: Bot):
         return await msg.edit_text("❌ No thumbnail found!")
 
     try:
-        # 🔥 DOWNLOAD THEN SEND (FIX)
+        # 🔥 DOWNLOAD thumbnail
         file = await bot.get_file(thumb.file_id)
         path = f"thumb_{time.time()}.jpg"
         await bot.download_file(file.file_path, path)
 
+        # 🔥 UNIQUE KEY (for button নিরাপদ রাখতে)
+        import uuid
+        key = str(uuid.uuid4())[:8]
+
+        TEMP_THUMBS[key] = thumb.file_id
+
         btn = [[types.InlineKeyboardButton(
             text="🖼️ USE THIS",
-            callback_data=f"use_this_{thumb.file_id}"
+            callback_data=f"use_this_{key}"
         )]]
 
         await bot.send_photo(
@@ -184,9 +191,21 @@ async def video_handler(message: types.Message, bot: Bot):
 # --- CALLBACK SAVE THUMB ---
 @router.callback_query(F.data.startswith("use_this_"))
 async def use_extracted_thumb(query: types.CallbackQuery):
-    file_id = query.data.replace("use_this_", "")
+    key = query.data.replace("use_this_", "")
+
+    file_id = TEMP_THUMBS.get(key)
+
+    if not file_id:
+        return await query.answer("❌ Expired! আবার extract করুন", show_alert=True)
+
     await set_thumbnail(query.from_user.id, file_id)
+
     await query.answer("✅ Thumbnail Saved!", show_alert=True)
+
     await query.message.edit_caption(
-        caption=small_caps("✅ this is now your default thumbnail!")
-            )
+        caption="✅ This thumbnail is now your default!"
+    )
+
+    # cleanup
+    TEMP_THUMBS.pop(key, None)
+    
