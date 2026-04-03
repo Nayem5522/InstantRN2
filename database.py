@@ -41,14 +41,7 @@ async def close_db():
     if client:
         client.close()
 
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
-# ==================== USER FUNCTIONS ====================
-
 async def add_user(user_id: int, username: str = None, first_name: str = None):
-    """Add or update a user."""
     await db.users.update_one(
         {"user_id": user_id},
         {
@@ -58,17 +51,14 @@ async def add_user(user_id: int, username: str = None, first_name: str = None):
             },
             "$setOnInsert": {
                 "user_id": user_id,
-                "thumbnail_file_id": None,
+                "thumbnail": None, # thumbnail_file_id এর বদলে thumbnail
                 "usage_count": 0,
-                "banned": False
+                "banned": False,
+                "caption": "{filename}"
             }
         },
         upsert=True
     )
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 
 async def get_user(user_id: int) -> Optional[Dict[str, Any]]:
     """Get user data."""
@@ -81,10 +71,7 @@ async def get_user(user_id: int) -> Optional[Dict[str, Any]]:
 async def get_all_users() -> List[Dict[str, Any]]:
     """Get all users."""
     return await db.users.find().to_list(length=None)
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
+
 
 async def get_user_count() -> int:
     """Get total user count."""
@@ -100,21 +87,12 @@ async def set_thumbnail(user_id: int, file_id: str):
     """Set user's thumbnail."""
     await db.users.update_one(
         {"user_id": user_id},
-        {"$set": {"thumbnail_file_id": file_id}}
+        {"$set": {"thumbnail": file_id}} # এখানে thumbnail হবে
     )
 
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschat
 async def get_thumbnail(user_id: int) -> Optional[str]:
-    """Get user's thumbnail file_id."""
     user = await db.users.find_one({"user_id": user_id})
-    return user.get("thumbnail_file_id") if user else None
-# CantarellaBots
-# Don't Remove Credit
-# Telegram Channel @CantarellaBots
-#Supoort group @rexbotschats
+    return user.get("thumbnail") if user else None
 
 async def remove_thumbnail(user_id: int) -> bool:
     """Remove user's thumbnail."""
