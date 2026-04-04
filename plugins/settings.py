@@ -78,10 +78,29 @@ async def delete_thumb_cb(query: types.CallbackQuery):
 @router.callback_query(F.data == "view_thumb")
 async def view_thumb(query: types.CallbackQuery):
     user = await get_user_data(query.from_user.id)
-    if user.get("thumbnail"):
-        await query.message.answer_photo(photo=user["thumbnail"], caption=small_caps("your current thumbnail"))
+    
+    if user and user.get("thumbnail"):
+        # ছবির নিচে ডিলিট বাটন তৈরি
+        btn = [[InlineKeyboardButton(text="🗑️ Delete Thumbnail", callback_data="delete_thumb_direct")]]
+        markup = InlineKeyboardMarkup(inline_keyboard=btn)
+        
+        await query.message.answer_photo(
+            photo=user["thumbnail"], 
+            caption=small_caps("your current thumbnail"),
+            reply_markup=markup
+        )
     else:
         await query.answer("No thumbnail set!", show_alert=True)
+
+# ছবির নিচের ডিলিট বাটনের কাজ
+@router.callback_query(F.data == "delete_thumb_direct")
+async def delete_thumb_direct(query: types.CallbackQuery):
+    await remove_thumbnail(query.from_user.id)
+    
+    # ছবিটি ডিলিট করে দেওয়া
+    await query.message.delete()
+    
+    await query.answer("✅ Thumbnail Deleted Successfully!", show_alert=True)
 
 @router.callback_query(F.data == "history_callback")
 async def history_callback(query: types.CallbackQuery):
