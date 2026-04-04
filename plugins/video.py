@@ -63,41 +63,54 @@ async def extract_handler(message: types.Message, bot: Bot):
     if not target:
         return await message.reply("❌ Invalid file!")
 
-    msg = await message.reply("⏳ Extracting...")
+    # 🔥 PROCESSING STICKER
+    status = await message.reply_sticker(
+        "CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ"
+    )
 
     thumb = getattr(target, "thumbnail", None) or getattr(target, "thumb", None)
 
     if not thumb:
-        return await msg.edit_text("❌ No thumbnail found!")
+        await status.delete()
+        return await message.reply("❌ No thumbnail found!")
 
     try:
         file = await bot.get_file(thumb.file_id)
         path = f"thumb_{time.time()}.jpg"
         await bot.download_file(file.file_path, path)
 
-        key = str(uuid.uuid4())[:8]
+        sent = await bot.send_photo(
+            chat_id=message.chat.id,
+            photo=types.FSInputFile(path),
+            caption="🖼️ Extracted Thumbnail"
+        )
 
-        # 🔥 SAVE REAL FILE_ID (important fix)
-        TEMP_THUMBS[key] = thumb.file_id
+        new_file_id = sent.photo[-1].file_id
+
+        import uuid
+        key = str(uuid.uuid4())[:8]
+        TEMP_THUMBS[key] = new_file_id
 
         btn = [[types.InlineKeyboardButton(
-            text="🖼️ USE THIS",
+            text="✅ USE THIS AS THUMBNAIL",
             callback_data=f"use_this_{key}"
         )]]
 
-        await bot.send_photo(
-            message.chat.id,
-            types.FSInputFile(path),
-            caption="✅ Thumbnail Extracted!",
+        await bot.send_message(
+            chat_id=message.chat.id,
+            text="👇 Click below to set this thumbnail",
             reply_markup=types.InlineKeyboardMarkup(inline_keyboard=btn)
         )
 
         os.remove(path)
-        await msg.delete()
 
     except Exception as e:
-        await msg.edit_text(f"❌ Failed: {e}")
+        await message.reply(f"❌ Failed: {e}")
 
+    finally:
+        # 🔥 STICKER DELETE
+        await status.delete()
+        
 # ✅ CALLBACK SAVE (FIXED MAIN ISSUE)
 @router.callback_query(F.data.startswith("use_this_"))
 async def use_thumb(query: types.CallbackQuery):
@@ -107,11 +120,10 @@ async def use_thumb(query: types.CallbackQuery):
     if not file_id:
         return await query.answer("❌ Expired!", show_alert=True)
 
-    # 🔥 DIRECT SAVE (this fix your main issue)
     await set_thumbnail(query.from_user.id, file_id)
 
     await query.answer("✅ Thumbnail Saved!", show_alert=True)
-    await query.message.edit_caption("✅ Saved as your thumbnail!")
+    await query.message.edit_text("✅ Saved as your thumbnail!")
 
     TEMP_THUMBS.pop(key, None)
 
@@ -119,26 +131,60 @@ async def use_thumb(query: types.CallbackQuery):
 @router.message(F.video | F.document)
 async def video_handler(message: types.Message, bot: Bot):
     user = await get_user_data(message.from_user.id)
+
     if not user or not user.get("thumbnail"):
         return await message.reply("❌ Set thumbnail first!")
 
     file_obj = message.video or message.document
     thumb_id = user["thumbnail"]
 
+    # 🔥 PROCESSING STICKER
+    status = await message.reply_sticker(
+        "CAACAgUAAxkBAAKGfGnNPmV4Bwsx_0W1Qk8h6p3Q423nAALbEAACdYaYVO2S9fNnW52THgQ"
+    )
+
+    # ✅ CAPTION FIX
+    raw_name = getattr(file_obj, 'file_name', 'video.mp4')
+    clean_name = os.path.splitext(raw_name)[0]
+
+    user_caption = user.get("caption", "{filename}")
+
+    if user.get("caption_on", True):
+        final_caption = user_caption.replace("{filename}", clean_name)
+    else:
+        final_caption = message.caption or ""
+
+    temp_path = None
+
     try:
         if user.get("watermark_on") and user.get("watermark"):
-            temp = await apply_watermark(bot, thumb_id, user["watermark"])
-            cover = types.FSInputFile(temp)
+            temp_path = await apply_watermark(bot, thumb_id, user["watermark"])
+            cover = types.FSInputFile(temp_path)
         else:
             cover = thumb_id
 
         if message.video:
-            await bot.send_video(message.chat.id, file_obj.file_id, cover=cover)
+            await bot.send_video(
+                message.chat.id,
+                file_obj.file_id,
+                caption=final_caption,
+                cover=cover,
+                supports_streaming=True
+            )
         else:
-            await bot.send_document(message.chat.id, file_obj.file_id, thumbnail=cover)
+            await bot.send_document(
+                message.chat.id,
+                file_obj.file_id,
+                caption=final_caption,
+                thumbnail=cover
+            )
 
         await increment_usage(message.from_user.id)
 
     except Exception as e:
         await message.reply(f"❌ Error: {e}")
-        
+
+    finally:
+        await status.delete()
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
