@@ -147,7 +147,7 @@ async def toggle_setting(user_id: int, field: str):
     return not current_status
     
 async def remove_thumbnail(user_id: int):
-    """ইউজারের সেট করা থাম্বনেইল ডিলিট করার ফাংশন"""
+    """ইউজারের সেট করা থাম্বনেইল ডিলিট করা"""
     await db.users.update_one(
         {"user_id": user_id}, 
         {"$set": {"thumbnail": None}}
