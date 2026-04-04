@@ -1,7 +1,7 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from database import get_user_data, toggle_setting, remove_thumbnail, is_banned
+from database import get_user_data, set_caption, is_banned, toggle_setting, remove_thumbnail
 
 router = Router()
 
@@ -9,45 +9,96 @@ def small_caps(text):
     mapping = {"a": "ᴀ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "ᴇ", "f": "ꜰ", "g": "ɢ", "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ᴍ", "n": "ɴ", "o": "ᴏ", "p": "ᴘ", "q": "ǫ", "r": "ʀ", "s": "s", "t": "ᴛ", "u": "ᴜ", "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ"}
     return "".join(mapping.get(c.lower(), c) for c in text)
 
-def get_buttons(user):
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"📝 Caption: {'ON' if user.get('caption_on') else 'OFF'}", callback_data="toggle_caption")],
-        [InlineKeyboardButton(text=f"⚡ Watermark: {'ON' if user.get('watermark_on') else 'OFF'}", callback_data="toggle_wm")],
+# ✅ BUTTON UI
+def get_settings_buttons(user):
+    cap_on = "✅ ON" if user.get("caption_on", True) else "❌ OFF"
+    wm_on = "✅ ON" if user.get("watermark_on", False) else "❌ OFF"
+
+    keyboard = [
+        [InlineKeyboardButton(text=f"📝 Caption: {cap_on}", callback_data="toggle_caption")],
+        [InlineKeyboardButton(text=f"⚡ Watermark: {wm_on}", callback_data="toggle_watermark")],
         [InlineKeyboardButton(text="🖼️ View Thumbnail", callback_data="view_thumb")],
-        [InlineKeyboardButton(text="📊 My Stats", callback_data="history")],  # 🔥 ADDED BACK
-        [InlineKeyboardButton(text="🔙 Back", callback_data="back")]
-    ])
+        [InlineKeyboardButton(text="📊 My Stats", callback_data="history")],
+        [InlineKeyboardButton(text="🔙 Back", callback_data="back_home")]
+    ]
 
+    return InlineKeyboardMarkup(inline_keyboard=keyboard)
+
+# ✅ SETTINGS MAIN
 @router.message(Command("settings"))
-async def settings(msg: types.Message):
-    if await is_banned(msg.from_user.id): return
-    user = await get_user_data(msg.from_user.id)
-    await msg.reply("⚙️ Settings", reply_markup=get_buttons(user))
+@router.callback_query(F.data == "settings_menu")
+async def settings_handler(event):
+    user_id = event.from_user.id
+    if await is_banned(user_id): return
 
-@router.callback_query(F.data == "view_thumb")
-async def view_thumb(q: types.CallbackQuery):
-    user = await get_user_data(q.from_user.id)
+    user = await get_user_data(user_id)
 
-    if not user or not user.get("thumbnail"):
-        return await q.answer("❌ No thumbnail!", show_alert=True)
+    thumb_status = "✅ Set" if user.get("thumbnail") else "❌ Not Set"
+    wm_text = user.get("watermark") if user.get("watermark") else "Not Set"
+    caption_text = user.get("caption", "{filename}")
 
-    btn = [[InlineKeyboardButton(text="🗑️ Delete", callback_data="del_thumb")]]
-
-    await q.message.answer_photo(
-        photo=user["thumbnail"],
-        caption="🖼️ Your Thumbnail",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=btn)
+    text = (
+        f"<b>⚙️ {small_caps('bot settings')}</b>\n\n"
+        f"🖼️ <b>Thumbnail:</b> <code>{thumb_status}</code>\n"
+        f"📝 <b>Caption:</b> <code>{caption_text}</code>\n"
+        f"⚡ <b>Watermark:</b> <code>{wm_text}</code>\n\n"
+        f"{small_caps('use buttons below to control your settings')}"
     )
 
+    if isinstance(event, types.Message):
+        await event.reply(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+    else:
+        await event.message.edit_caption(caption=text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+
+# ✅ TOGGLE CAPTION
+@router.callback_query(F.data == "toggle_caption")
+async def toggle_caption_cb(query: types.CallbackQuery):
+    await toggle_setting(query.from_user.id, "caption_on")
+    user = await get_user_data(query.from_user.id)
+    await query.message.edit_reply_markup(reply_markup=get_settings_buttons(user))
+    await query.answer("Caption toggled!")
+
+# ✅ TOGGLE WATERMARK
+@router.callback_query(F.data == "toggle_watermark")
+async def toggle_wm_cb(query: types.CallbackQuery):
+    user = await get_user_data(query.from_user.id)
+
+    if not user.get("watermark"):
+        return await query.answer("❌ Set watermark first using /watermark", show_alert=True)
+
+    await toggle_setting(query.from_user.id, "watermark_on")
+    user = await get_user_data(query.from_user.id)
+
+    await query.message.edit_reply_markup(reply_markup=get_settings_buttons(user))
+    await query.answer("Watermark toggled!")
+
+# ✅ VIEW THUMBNAIL
+@router.callback_query(F.data == "view_thumb")
+async def view_thumb(query: types.CallbackQuery):
+    user = await get_user_data(query.from_user.id)
+
+    if user and user.get("thumbnail"):
+        btn = [[InlineKeyboardButton(text="🗑️ Delete Thumbnail", callback_data="delete_thumb_direct")]]
+
+        await query.message.answer_photo(
+            photo=user["thumbnail"],
+            caption=small_caps("your current thumbnail"),
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=btn)
+        )
+    else:
+        await query.answer("❌ No thumbnail set!", show_alert=True)
+
+# ✅ DELETE FROM IMAGE
+@router.callback_query(F.data == "delete_thumb_direct")
+async def delete_thumb_direct(query: types.CallbackQuery):
+    await remove_thumbnail(query.from_user.id)
+    await query.message.delete()
+    await query.answer("✅ Thumbnail deleted!", show_alert=True)
+
+# ✅ HISTORY
 @router.callback_query(F.data == "history")
-async def history(q: types.CallbackQuery):
-    user = await get_user_data(q.from_user.id)
+async def history_cb(query: types.CallbackQuery):
+    user = await get_user_data(query.from_user.id)
     total = user.get("usage_count", 0)
-
-    await q.answer(f"📊 Total Processed: {total}", show_alert=True)
-
-@router.callback_query(F.data == "del_thumb")
-async def delete_thumb(q: types.CallbackQuery):
-    await remove_thumbnail(q.from_user.id)
-    await q.message.delete()
-    await q.answer("✅ Deleted!", show_alert=True)
+    await query.answer(f"📊 Total Processed: {total}", show_alert=True)
+    
