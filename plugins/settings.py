@@ -1,5 +1,6 @@
 from aiogram import Router, types, F
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
+#from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import get_user_data, set_caption, is_banned, toggle_setting, remove_thumbnail
 
@@ -134,3 +135,31 @@ async def close_settings(query: types.CallbackQuery):
     await query.answer()
 
 
+# ✅ SET CAPTION COMMAND
+@router.message(Command("set_caption"))
+async def set_caption_handler(message: types.Message, command: CommandObject):
+    user_id = message.from_user.id
+
+    if await is_banned(user_id):
+        return
+
+    # Get text from command
+    new_caption = command.args
+
+    if not new_caption:
+        return await message.reply(
+            f"❌ <b>Usage:</b>\n"
+            f"<code>/set_caption your caption here</code>\n\n"
+            f"💡 <i>Tip: Use <code>{{filename}}</code> to keep the original file name.</i>",
+            parse_mode="HTML"
+        )
+
+    # Save to database
+    await set_caption(user_id, new_caption)
+
+    await message.reply(
+        f"✅ <b>Caption saved successfully!</b>\n\n"
+        f"📝 <b>New Caption:</b>\n<code>{new_caption}</code>",
+        parse_mode="HTML"
+                          )
+    
