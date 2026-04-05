@@ -1,5 +1,5 @@
 from aiogram import Router, types, F, Bot
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import *
@@ -9,40 +9,41 @@ router = Router()
 
 
 # =========================
-# FORCE SUB CHECK
+# CHECK SUBSCRIPTION
 # =========================
 async def is_subscribed(bot: Bot, user_id: int, channels: list):
-    not_joined = []
+    buttons = []
 
     for ch in channels:
         try:
             member = await bot.get_chat_member(int(ch), user_id)
 
+            # Not joined
             if member.status in ["left", "kicked"]:
                 chat = await bot.get_chat(int(ch))
 
                 invite = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else "https://t.me/PrimeXBots"
 
-                not_joined.append([
+                buttons.append([
                     InlineKeyboardButton(
-                        text=f"✇ ᴊᴏɪɴ {chat.title} ✇",
+                        text=f"✇ Join {chat.title} ✇",
                         url=invite
                     )
                 ])
 
         except:
-            not_joined.append([
+            buttons.append([
                 InlineKeyboardButton(
-                    text="✇ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ✇",
+                    text="✇ Join Channel ✇",
                     url="https://t.me/PrimeXBots"
                 )
             ])
 
-    return not_joined
+    return buttons
 
 
 # =========================
-# SMALL CAPS
+# SMALL CAPS TEXT
 # =========================
 def small_caps(text):
     mapping = {
@@ -59,17 +60,17 @@ def small_caps(text):
 # =========================
 def get_start_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu")],
+        [InlineKeyboardButton(text="⚙️ SETTINGS", callback_data="settings_menu")],
         [
-            InlineKeyboardButton(text="〄 ᴍᴏᴠɪᴇ ᴄʜᴀɴɴᴇʟ 〄", url=MOVIE_CHANNEL),
-            InlineKeyboardButton(text="✪ ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ ✪", url=SUPPORT_GROUP)
+            InlineKeyboardButton(text="🎬 MOVIE CHANNEL", url=MOVIE_CHANNEL),
+            InlineKeyboardButton(text="🛟 SUPPORT GROUP", url=SUPPORT_GROUP)
         ],
-        [InlineKeyboardButton(text="〄 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ 〄", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="📢 UPDATES CHANNEL", url=CHANNEL_URL)],
         [
-            InlineKeyboardButton(text="〆 ʜᴇʟᴘ 〆", callback_data="help_cmd"),
-            InlineKeyboardButton(text="〆 ᴀʙᴏᴜᴛ 〆", callback_data="about_cmd")
+            InlineKeyboardButton(text="ℹ️ HELP", callback_data="help_cmd"),
+            InlineKeyboardButton(text="📌 ABOUT", callback_data="about_cmd")
         ],
-        [InlineKeyboardButton(text="✧ ᴄʀᴇᴀᴛᴏʀ ✧", url=CREATOR_URL)]
+        [InlineKeyboardButton(text="👑 CREATOR", url=CREATOR_URL)]
     ])
 
 
@@ -80,37 +81,37 @@ async def send_start(message: types.Message):
     user_mention = f"<a href='tg://user?id={message.from_user.id}'>{message.from_user.first_name}</a>"
 
     welcome = f"""
-<b>🔥 ᴡᴇʟᴄᴏᴍᴇ {user_mention} ᴛᴏ ᴘʀɪᴍᴇ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇʀ ʙᴏᴛ 🔥</b>
+<b>🔥 WELCOME {user_mention} TO PRIME COVER CHANGER BOT 🔥</b>
 
-━━━━━━━━━━━━━━━━━━━
-✨ ᴀɴᴅ ᴀᴅᴠᴀɴᴄᴇᴅ ꜰᴇᴀᴛᴜʀᴇs ✨
+━━━━━━━━━━━━━━━━━━━━
+✨ <b>ADVANCED FEATURES</b>
 
-🎬 ᴜʟᴛʀᴀ ᴘʀᴏ ᴠɪᴅᴇᴏ ᴄᴜꜱᴛᴏᴍɪᴢᴀᴛɪᴏɴ
+🎬 Smart Cover System
+⚡ Instant Thumbnail Engine
+💎 Advanced Caption Control
+🔥 Premium Watermark Tools
+🧠 Auto Thumbnail Extractor
+🎯 One Click Media Control Panel
 
-🚀 ꜱᴍᴀʀᴛ ᴛʜᴜᴍʙɴᴀɪʟ ᴇɴɢɪɴᴇ  
-⚡ ɪɴꜱᴛᴀɴᴛ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇ  
-💎 ᴀᴅᴠᴀɴᴄᴇᴅ ᴄᴀᴘᴛɪᴏɴ ᴛᴏᴏʟꜱ  
-🔥 ᴘʀᴇᴍɪᴜᴍ ᴡᴀᴛᴇʀᴍᴀʀᴋ  
-🧠 ᴀᴜᴛᴏ ᴛʜᴜᴍʙɴᴀɪʟ ᴇxᴛʀᴀᴄᴛᴏʀ  
+━━━━━━━━━━━━━━━━━━━━
+⚙️ <b>HOW TO USE</b>
 
-━━━━━━━━━━━━━━━━━━━
-⚙️ ʜᴏᴡ ᴛᴏ ᴜꜱᴇ
+1️⃣ Send a photo → set thumbnail  
+2️⃣ Send a video → auto cover apply  
+3️⃣ /set_caption → custom caption (use <code>{{filename}}</code> for original name)  
+4️⃣ /extract → get thumbnail from video  
+5️⃣ /Settings → full control panel  
 
-1️⃣ ꜱᴇɴᴅ ᴘʜᴏᴛᴏ → sᴇᴛ ᴛʜᴜᴍʙɴᴀɪʟ  
-2️⃣ ꜱᴇɴᴅ ᴠɪᴅᴇᴏ → ᴀᴜᴛᴏ ᴄᴏᴠᴇʀ  
-3️⃣ /set_caption → ᴄᴜꜱᴛᴏᴍ ᴄᴀᴘᴛɪᴏn
+━━━━━━━━━━━━━━━━━━━━
+💎 PREMIUM FEATURES
 
-4️⃣ /extract → ᴛʜᴜᴍʙɴᴀɪʟ ɢᴇᴛ
+✔ Ultra fast processing  
+✔ Clean UI system  
+✔ 24/7 stability  
+✔ No delay system  
 
-━━━━━━━━━━━━━━━━━━━
-💎 ᴘʀᴇᴍɪᴜᴍ ᴇxᴘᴇʀɪᴇɴᴄᴇ
-
-✔ ʜɪɢʜ ꜱᴘᴇᴇᴅ  
-✔ ɴᴏ ʟᴀɢ  
-✔ 24/7 ᴏɴʟɪɴᴇ  
-
-━━━━━━━━━━━━━━━━━━━
-🚀 ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ ᴜꜱᴇ sᴇᴛᴛɪɴɢs
+━━━━━━━━━━━━━━━━━━━━
+🚀 Tap SETTINGS to control everything
 """
 
     await message.reply_photo(
@@ -136,27 +137,33 @@ async def start_cmd(message: types.Message, bot: Bot):
         message.from_user.first_name
     )
 
+    # FORCE SUB
     if AUTH_CHANNEL:
         btn = await is_subscribed(bot, message.from_user.id, AUTH_CHANNEL)
 
         if btn:
             btn.append([
-                InlineKeyboardButton("♻️ ʀᴇꜰʀᴇꜱʜ ♻️", callback_data="check_sub")
+                InlineKeyboardButton("♻️ REFRESH", callback_data="check_sub")
             ])
 
             await message.reply_photo(
                 photo="https://i.postimg.cc/xdkd1h4m/IMG-20250715-153124-952.jpg",
-                caption="⚠️ ᴊᴏɪɴ ᴀʟʟ ᴄʜᴀɴɴᴇʟꜱ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ʙᴏᴛ",
+                caption=(
+                    "<b>⚠️ You must join our channels to use this bot.</b>\n\n"
+                    "👉 Join all channels below\n"
+                    "👉 Then click Refresh button"
+                ),
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=btn),
                 parse_mode="HTML"
             )
             return
 
+    # IF SUBSCRIBED
     await send_start(message)
 
 
 # =========================
-# CHECK SUB
+# CHECK SUB CALLBACK
 # =========================
 @router.callback_query(F.data == "check_sub")
 async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
@@ -167,7 +174,8 @@ async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
         await query.answer("⚠️ Please join all channels first!", show_alert=True)
         return
 
-    await query.answer("✅ Verified!", show_alert=True)
+    await query.answer("✅ Verified successfully!", show_alert=True)
+
     await query.message.delete()
 
     fake_message = query.message
