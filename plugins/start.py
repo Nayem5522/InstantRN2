@@ -9,41 +9,40 @@ router = Router()
 
 
 # =========================
-# CHECK SUBSCRIPTION
+# FORCE SUB CHECK
 # =========================
 async def is_subscribed(bot: Bot, user_id: int, channels: list):
-    buttons = []
+    not_joined = []
 
     for ch in channels:
         try:
             member = await bot.get_chat_member(int(ch), user_id)
 
-            # Not joined
             if member.status in ["left", "kicked"]:
                 chat = await bot.get_chat(int(ch))
 
                 invite = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else "https://t.me/PrimeXBots"
 
-                buttons.append([
+                not_joined.append([
                     InlineKeyboardButton(
-                        text=f"✇ Join {chat.title} ✇",
+                        text=f"✇ ᴊᴏɪɴ {chat.title} ✇",
                         url=invite
                     )
                 ])
 
         except:
-            buttons.append([
+            not_joined.append([
                 InlineKeyboardButton(
-                    text="✇ Join Channel ✇",
+                    text="✇ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ✇",
                     url="https://t.me/PrimeXBots"
                 )
             ])
 
-    return buttons
+    return not_joined
 
 
 # =========================
-# SMALL CAPS TEXT
+# SMALL CAPS
 # =========================
 def small_caps(text):
     mapping = {
@@ -60,17 +59,17 @@ def small_caps(text):
 # =========================
 def get_start_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ SETTINGS", callback_data="settings_menu")],
+        [InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu")],
         [
-            InlineKeyboardButton(text="🎬 MOVIE CHANNEL", url=MOVIE_CHANNEL),
-            InlineKeyboardButton(text="🛟 SUPPORT GROUP", url=SUPPORT_GROUP)
+            InlineKeyboardButton(text="〄 ᴍᴏᴠɪᴇ ᴄʜᴀɴɴᴇʟ 〄", url=MOVIE_CHANNEL),
+            InlineKeyboardButton(text="✪ ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ ✪", url=SUPPORT_GROUP)
         ],
-        [InlineKeyboardButton(text="📢 UPDATES CHANNEL", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="〄 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ 〄", url=CHANNEL_URL)],
         [
-            InlineKeyboardButton(text="ℹ️ HELP", callback_data="help_cmd"),
-            InlineKeyboardButton(text="📌 ABOUT", callback_data="about_cmd")
+            InlineKeyboardButton(text="〆 ʜᴇʟᴘ 〆", callback_data="help_cmd"),
+            InlineKeyboardButton(text="〆 ᴀʙᴏᴜᴛ 〆", callback_data="about_cmd")
         ],
-        [InlineKeyboardButton(text="👑 CREATOR", url=CREATOR_URL)]
+        [InlineKeyboardButton(text="✧ ᴄʀᴇᴀᴛᴏʀ ✧", url=CREATOR_URL)]
     ])
 
 
@@ -81,37 +80,39 @@ async def send_start(message: types.Message):
     user_mention = f"<a href='tg://user?id={message.from_user.id}'>{message.from_user.first_name}</a>"
 
     welcome = f"""
-<b>🔥 WELCOME {user_mention} TO PRIME COVER CHANGER BOT 🔥</b>
+<b>🔥 ᴡᴇʟᴄᴏᴍᴇ {user_mention} ᴛᴏ ᴘʀɪᴍᴇ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇʀ ʙᴏᴛ 🔥</b>
 
-━━━━━━━━━━━━━━━━━━━━
-✨ <b>ADVANCED FEATURES</b>
+━━━━━━━━━━━━━━━━━━━
+✨ ᴀɴᴅ ᴀᴅᴠᴀɴᴄᴇᴅ ꜰᴇᴀᴛᴜʀᴇs ✨
 
-🎬 Smart Cover System
-⚡ Instant Thumbnail Engine
-💎 Advanced Caption Control
-🔥 Premium Watermark Tools
-🧠 Auto Thumbnail Extractor
-🎯 One Click Media Control Panel
+🎬 ᴜʟᴛʀᴀ ᴘʀᴏ ᴠɪᴅᴇᴏ ᴄᴜꜱᴛᴏᴍɪᴢᴀᴛɪᴏɴ
 
-━━━━━━━━━━━━━━━━━━━━
-⚙️ <b>HOW TO USE</b>
+🚀 ꜱᴍᴀʀᴛ ᴛʜᴜᴍʙɴᴀɪʟ ᴇɴɢɪɴᴇ  
+⚡ ɪɴꜱᴛᴀɴᴛ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇ  
+💎 ᴀᴅᴠᴀɴᴄᴇᴅ ᴄᴀᴘᴛɪᴏɴ ᴛᴏᴏʟꜱ  
+🔥 ᴘʀᴇᴍɪᴜᴍ ᴡᴀᴛᴇʀᴍᴀʀᴋ  
+🧠 ᴀᴜᴛᴏ ᴛʜᴜᴍʙɴᴀɪʟ ᴇxᴛʀᴀᴄᴛᴏʀ  
 
-1️⃣ Send a photo → set thumbnail  
-2️⃣ Send a video → auto cover apply  
-3️⃣ /set_caption → custom caption (use {{filename}} for original name)  
-4️⃣ /extract → get thumbnail from video  
-5️⃣ Settings → full control panel  
+━━━━━━━━━━━━━━━━━━━
+⚙️ ʜᴏᴡ ᴛᴏ ᴜꜱᴇ
 
-━━━━━━━━━━━━━━━━━━━━
-💎 PREMIUM FEATURES
+1️⃣ ꜱᴇɴᴅ ᴘʜᴏᴛᴏ → sᴇᴛ ᴛʜᴜᴍʙɴᴀɪʟ  
+2️⃣ ꜱᴇɴᴅ ᴠɪᴅᴇᴏ → ᴀᴜᴛᴏ ᴄᴏᴠᴇʀ  
+3️⃣ /set_caption → ᴄᴜꜱᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ
 
-✔ Ultra fast processing  
-✔ Clean UI system  
-✔ 24/7 stability  
-✔ No delay system  
+💡 ᴛɪᴘꜱ😉: ᴜꜱᴇ <code>{filename}</code> ᴛᴏ ꜱᴇᴛ ᴏʀɪɢɪɴᴀʟ ꜰɪʟᴇ ɴᴀᴍᴇ
 
-━━━━━━━━━━━━━━━━━━━━
-🚀 Tap SETTINGS to control everything
+4️⃣ /extract → ᴛʜᴜᴍʙɴᴀɪʟ ɢᴇᴛ
+
+━━━━━━━━━━━━━━━━━━━
+💎 ᴘʀᴇᴍɪᴜᴍ ᴇxᴘᴇʀɪᴇɴᴄᴇ
+
+✔ ʜɪɢʜ ꜱᴘᴇᴇᴅ  
+✔ ɴᴏ ʟᴀɢ  
+✔ 24/7 ᴏɴʟɪɴᴇ  
+
+━━━━━━━━━━━━━━━━━━━
+🚀 ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ ᴜꜱᴇ sᴇᴛᴛɪɴɢs
 """
 
     await message.reply_photo(
@@ -137,33 +138,27 @@ async def start_cmd(message: types.Message, bot: Bot):
         message.from_user.first_name
     )
 
-    # FORCE SUB
     if AUTH_CHANNEL:
         btn = await is_subscribed(bot, message.from_user.id, AUTH_CHANNEL)
 
         if btn:
             btn.append([
-                InlineKeyboardButton("♻️ REFRESH", callback_data="check_sub")
+                InlineKeyboardButton("♻️ ʀᴇꜰʀᴇꜱʜ ♻️", callback_data="check_sub")
             ])
 
             await message.reply_photo(
                 photo="https://i.postimg.cc/xdkd1h4m/IMG-20250715-153124-952.jpg",
-                caption=(
-                    "<b>⚠️ You must join our channels to use this bot.</b>\n\n"
-                    "👉 Join all channels below\n"
-                    "👉 Then click Refresh button"
-                ),
+                caption="⚠️ ᴊᴏɪɴ ᴀʟʟ ᴄʜᴀɴɴᴇʟꜱ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ʙᴏᴛ",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=btn),
                 parse_mode="HTML"
             )
             return
 
-    # IF SUBSCRIBED
     await send_start(message)
 
 
 # =========================
-# CHECK SUB CALLBACK
+# CHECK SUB
 # =========================
 @router.callback_query(F.data == "check_sub")
 async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
@@ -174,14 +169,14 @@ async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
         await query.answer("⚠️ Please join all channels first!", show_alert=True)
         return
 
-    await query.answer("✅ Verified successfully!", show_alert=True)
-
+    await query.answer("✅ Verified!", show_alert=True)
     await query.message.delete()
 
     fake_message = query.message
     fake_message.from_user = query.from_user
 
     await send_start(fake_message)
+
         
 @router.callback_query(F.data == "about_cmd")
 async def about_handler(query: types.CallbackQuery, bot: Bot):
