@@ -19,7 +19,7 @@ def get_settings_buttons(user):
         [InlineKeyboardButton(text=f"⚡ Watermark: {wm_on}", callback_data="toggle_watermark")],
         [InlineKeyboardButton(text="🖼️ View Thumbnail", callback_data="view_thumb")],
         [InlineKeyboardButton(text="📊 My Stats", callback_data="history")],
-        [InlineKeyboardButton(text="🔙 Back", callback_data="back_home")]
+        [InlineKeyboardButton(text="❌ Close", callback_data="close_settings")]  # 🔥 NEW
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
@@ -33,25 +33,49 @@ async def settings_handler(event):
 
     user = await get_user_data(user_id)
 
-    thumb_status = "✅ Set" if user.get("thumbnail") else "❌ Not Set"
+    thumb_status = "✔️ Set" if user.get("thumbnail") else "✖️ Not Set"
     wm_text = user.get("watermark") if user.get("watermark") else "Not Set"
     caption_text = user.get("caption", "{filename}")
 
     text = (
-        f"<b>⚙️ Settings</b>\n\n"
-        f"🖼️ Thumbnail: <code>{thumb_status}</code>\n"
-        f"📝 Caption: <code>{caption_text}</code>\n"
-        f"⚡ Watermark: <code>{wm_text}</code>"
+        "<b>⚙️ ᴘʀɪᴍᴇ sᴇᴛᴛɪɴɢs ᴘᴀɴᴇʟ</b>\n\n"
+        "╭───────────────⍟\n"
+        f"┃ 🖼️ ᴛʜᴜᴍʙɴᴀɪʟ ➜ <code>{thumb_status}</code>\n"
+        f"┃ 📝 ᴄᴀᴘᴛɪᴏɴ ➜ <code>{caption_text}</code>\n"
+        f"┃ ⚡ ᴡᴀᴛᴇʀᴍᴀʀᴋ ➜ <code>{wm_text}</code>\n"
+        "╰───────────────⍟\n\n"
+        "✨ ᴄᴏɴᴛʀᴏʟ ʏᴏᴜʀ sᴇᴛᴛɪɴɢs ʙᴇʟᴏᴡ"
     )
 
-    # 🔥 FIX START HERE
+    buttons = get_settings_buttons(user)
+
+    image_url = "https://i.postimg.cc/QCbwNzMz/610216.png"
+
     if isinstance(event, types.Message):
-        await event.reply(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+        await event.reply_photo(
+            photo=image_url,
+            caption=text,
+            reply_markup=buttons,
+            parse_mode="HTML"
+        )
     else:
         try:
-            await event.message.edit_text(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+            await event.message.edit_media(
+                media=types.InputMediaPhoto(
+                    media=image_url,
+                    caption=text,
+                    parse_mode="HTML"
+                ),
+                reply_markup=buttons
+            )
         except:
-            await event.message.answer(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+            await event.message.answer_photo(
+                photo=image_url,
+                caption=text,
+                reply_markup=buttons,
+                parse_mode="HTML"
+    )
+            
 # ✅ TOGGLE CAPTION
 @router.callback_query(F.data == "toggle_caption")
 async def toggle_caption_cb(query: types.CallbackQuery):
@@ -103,4 +127,9 @@ async def history_cb(query: types.CallbackQuery):
     user = await get_user_data(query.from_user.id)
     total = user.get("usage_count", 0)
     await query.answer(f"📊 Total Processed: {total}", show_alert=True)
+    
+@router.callback_query(F.data == "close_settings")
+async def close_settings(query: types.CallbackQuery):
+    await query.message.delete()
+    await query.answer()
     
