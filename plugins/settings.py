@@ -132,4 +132,28 @@ async def history_cb(query: types.CallbackQuery):
 async def close_settings(query: types.CallbackQuery):
     await query.message.delete()
     await query.answer()
-    
+
+
+@router.message(Command("watermark"))
+async def set_wm_cmd(message: types.Message):
+    if await is_banned(message.from_user.id): 
+        return
+
+    args = message.text.split(None, 1)
+
+    # ❌ যদি text না দেয়
+    if len(args) < 2:
+        return await message.reply(
+            "❌ Usage:\n<code>/watermark Your Text Here</code>",
+            parse_mode="HTML"
+        )
+
+    wm_text = args[1].strip()
+
+    # 🔥 DB তে save
+    await set_watermark(message.from_user.id, wm_text)
+
+    await message.reply(
+        f"✅ Watermark Saved:\n<code>{wm_text}</code>\n\n⚙️ Enable it from Settings",
+        parse_mode="HTML"
+)
