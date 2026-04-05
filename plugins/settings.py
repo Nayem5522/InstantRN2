@@ -38,18 +38,20 @@ async def settings_handler(event):
     caption_text = user.get("caption", "{filename}")
 
     text = (
-        f"<b>⚙️ {small_caps('bot settings')}</b>\n\n"
-        f"🖼️ <b>Thumbnail:</b> <code>{thumb_status}</code>\n"
-        f"📝 <b>Caption:</b> <code>{caption_text}</code>\n"
-        f"⚡ <b>Watermark:</b> <code>{wm_text}</code>\n\n"
-        f"{small_caps('use buttons below to control your settings')}"
+        f"<b>⚙️ Settings</b>\n\n"
+        f"🖼️ Thumbnail: <code>{thumb_status}</code>\n"
+        f"📝 Caption: <code>{caption_text}</code>\n"
+        f"⚡ Watermark: <code>{wm_text}</code>"
     )
 
+    # 🔥 FIX START HERE
     if isinstance(event, types.Message):
         await event.reply(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
     else:
-        await event.message.edit_caption(caption=text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
-
+        try:
+            await event.message.edit_text(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
+        except:
+            await event.message.answer(text, reply_markup=get_settings_buttons(user), parse_mode="HTML")
 # ✅ TOGGLE CAPTION
 @router.callback_query(F.data == "toggle_caption")
 async def toggle_caption_cb(query: types.CallbackQuery):
