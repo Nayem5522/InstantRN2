@@ -66,8 +66,9 @@ async def get_user_data(user_id: int):
 # ওয়াটারমার্ক টেক্সট সেভ করার জন্য
 async def set_watermark(user_id: int, text: str):
     await db.users.update_one(
-        {"user_id": user_id}, 
-        {"$set": {"watermark": text}}
+        {"user_id": user_id},
+        {"$set": {"watermark": text}},
+        upsert=True   # 🔥 ensures user exists
     )
 
 # ভিডিও প্রসেসিং কাউন্ট করার জন্য
