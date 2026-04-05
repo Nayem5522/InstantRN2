@@ -1,108 +1,133 @@
 from aiogram import Router, types, F, Bot
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from config import *
 from database import add_user, is_banned
 
 router = Router()
 
+
+# =========================
+# CHECK SUBSCRIPTION
+# =========================
 async def is_subscribed(bot: Bot, user_id: int, channels: list):
-    btn = []
+    buttons = []
+
     for ch in channels:
         try:
-            chat = await bot.get_chat(int(ch))
             member = await bot.get_chat_member(int(ch), user_id)
 
+            # Not joined
             if member.status in ["left", "kicked"]:
-                btn.append([
+                chat = await bot.get_chat(int(ch))
+
+                invite = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else "https://t.me/PrimeXBots"
+
+                buttons.append([
                     InlineKeyboardButton(
                         text=f"✇ Join {chat.title} ✇",
-                        url=chat.invite_link
+                        url=invite
                     )
                 ])
+
         except:
-            btn.append([
+            buttons.append([
                 InlineKeyboardButton(
                     text="✇ Join Channel ✇",
                     url="https://t.me/PrimeXBots"
                 )
             ])
-    return btn
 
+    return buttons
+
+
+# =========================
+# SMALL CAPS TEXT
+# =========================
 def small_caps(text):
-    mapping = {"a": "ᴀ", "b": "ʙ", "c": "ᴄ", "d": "ᴅ", "e": "ᴇ", "f": "ꜰ", "g": "ɢ", "h": "ʜ", "i": "ɪ", "j": "ᴊ", "k": "ᴋ", "l": "ʟ", "m": "ᴍ", "n": "ɴ", "o": "ᴏ", "p": "ᴘ", "q": "ǫ", "r": "ʀ", "s": "s", "t": "ᴛ", "u": "ᴜ", "v": "ᴠ", "w": "ᴡ", "x": "x", "y": "ʏ", "z": "ᴢ"}
+    mapping = {
+        "a":"ᴀ","b":"ʙ","c":"ᴄ","d":"ᴅ","e":"ᴇ","f":"ꜰ","g":"ɢ",
+        "h":"ʜ","i":"ɪ","j":"ᴊ","k":"ᴋ","l":"ʟ","m":"ᴍ","n":"ɴ",
+        "o":"ᴏ","p":"ᴘ","q":"ǫ","r":"ʀ","s":"s","t":"ᴛ",
+        "u":"ᴜ","v":"ᴠ","w":"ᴡ","x":"x","y":"ʏ","z":"ᴢ"
+    }
     return "".join(mapping.get(c.lower(), c) for c in text)
 
+
+# =========================
+# START BUTTONS
+# =========================
 def get_start_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="⚙️ sᴇᴛᴛɪɴɢs", callback_data="settings_menu")],
+        [InlineKeyboardButton(text="⚙️ SETTINGS", callback_data="settings_menu")],
         [
-            InlineKeyboardButton(text="〄 ᴍᴏᴠɪᴇ ᴄʜᴀɴɴᴇʟ 〄", url=MOVIE_CHANNEL),
-            InlineKeyboardButton(text="✪ ꜱᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ ✪", url=SUPPORT_GROUP)
+            InlineKeyboardButton(text="🎬 MOVIE CHANNEL", url=MOVIE_CHANNEL),
+            InlineKeyboardButton(text="🛟 SUPPORT GROUP", url=SUPPORT_GROUP)
         ],
-        [InlineKeyboardButton(text="〄 ᴜᴘᴅᴀᴛᴇs ᴄʜᴀɴɴᴇʟ 〄", url=CHANNEL_URL)],
+        [InlineKeyboardButton(text="📢 UPDATES CHANNEL", url=CHANNEL_URL)],
         [
-            InlineKeyboardButton(text="〆 ʜᴇʟᴘ 〆", callback_data="help_cmd"),
-            InlineKeyboardButton(text="〆 ᴀʙᴏᴜᴛ 〆", callback_data="about_cmd")
+            InlineKeyboardButton(text="ℹ️ HELP", callback_data="help_cmd"),
+            InlineKeyboardButton(text="📌 ABOUT", callback_data="about_cmd")
         ],
-        [InlineKeyboardButton(text="✧ ᴄʀᴇᴀᴛᴏʀ ✧", url=CREATOR_URL)]
+        [InlineKeyboardButton(text="👑 CREATOR", url=CREATOR_URL)]
     ])
 
 
 # =========================
-# ✅ START MESSAGE FUNCTION
+# START MESSAGE
 # =========================
 async def send_start(message: types.Message):
     user_mention = f"<a href='tg://user?id={message.from_user.id}'>{message.from_user.first_name}</a>"
 
     welcome = f"""
-<b>🔥 ᴡᴇʟᴄᴏᴍᴇ {user_mention} ᴛᴏ ᴘʀɪᴍᴇ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇʀ ʙᴏᴛ 🔥</b>
+<b>🔥 WELCOME {user_mention} TO PRIME COVER CHANGER BOT 🔥</b>
 
-━━━━━━━━━━━━━━━━━━━
-✨ <b>ᴀɴᴅ ᴀᴅᴠᴀɴᴄᴇᴅ ꜰᴇᴀᴛᴜʀᴇs</b> ✨
+━━━━━━━━━━━━━━━━━━━━
+✨ <b>ADVANCED FEATURES</b>
 
-🎬 <b>ᴜʟᴛʀᴀ ᴘʀᴏ ᴠɪᴅᴇᴏ ᴄᴜꜱᴛᴏᴍɪᴢᴀᴛɪᴏɴ ꜱʏꜱᴛᴇᴍ</b>
+🎬 Smart Cover System
+⚡ Instant Thumbnail Engine
+💎 Advanced Caption Control
+🔥 Premium Watermark Tools
+🧠 Auto Thumbnail Extractor
+🎯 One Click Media Control Panel
 
-🚀 🎞️ ꜱᴍᴀʀᴛ ᴛʜᴜᴍʙɴᴀɪʟ ᴇɴɢɪɴᴇ  
-⚡ 🖼️ ɪɴꜱᴛᴀɴᴛ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇ ꜱʏꜱᴛᴇᴍ  
-💎 ✍️ ᴀᴅᴠᴀɴᴄᴇᴅ ᴄᴀᴘᴛɪᴏɴ ꜱᴛʏʟɪɴɢ ᴛᴏᴏʟꜱ  
-🔥 🎨 ᴘʀᴇᴍɪᴜᴍ ᴡᴀᴛᴇʀᴍᴀʀᴋ ᴅᴇꜱɪɢɴᴇʀ  
-🧠 📥 ᴀᴜᴛᴏ ᴛʜᴜᴍʙɴᴀɪʟ ᴇxᴛʀᴀᴄᴛᴏʀ  
-🎯 🛠️ ᴏɴᴇ-ᴄʟɪᴄᴋ ᴍᴇᴅɪᴀ ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ  
-━━━━━━━━━━━━━━━━━━━
-⚙️ <b>ʜᴏᴡ ᴛᴏ ᴜꜱᴇ?</b>
+━━━━━━━━━━━━━━━━━━━━
+⚙️ <b>HOW TO USE</b>
 
-1️⃣ ꜱᴇɴᴅ ᴀ ᴘʜᴏᴛᴏ → ꜱᴇᴛ ᴛʜᴜᴍʙɴᴀɪʟ  
-2️⃣ ꜱᴇɴᴅ ᴀ ᴠɪᴅᴇᴏ → ᴀᴜᴛᴏ ꜱᴍᴀʀᴛ ᴄᴏᴠᴇʀ ᴀᴘᴘʟʏ  
-3️⃣ /set_caption → ᴛᴏ ᴜꜱᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄᴜꜱᴛᴏᴍ ᴄᴀᴘᴛɪᴏɴ. ᴛɪᴘꜱ😉: ᴜꜱᴇ <code>{filename}</code> ᴛᴏ ꜱᴇᴛ ᴏʀɪɢɪɴᴀʟ ꜰɪʟᴇ ɴᴀᴍᴇ.
-4️⃣ /extract → ɢᴇᴛ ᴛʜᴜᴍʙɴᴀɪʟ ꜰʀᴏᴍ ᴀɴʏ ᴠɪᴅᴇᴏ    
-5️⃣ /watermark → ᴛᴏ ᴜꜱᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄᴜꜱᴛᴏᴍ ᴡᴀᴛᴇʀᴍᴀʀᴋ ᴏɴ ᴛʜᴇ ᴛʜᴜᴍʙɴᴀɪʟ.
-6️⃣ /settings → ꜰᴜʟʟ ᴄᴏɴᴛʀᴏʟ ᴀᴄᴄᴇꜱꜱ ⚙️
-━━━━━━━━━━━━━━━━━━━
-💎 <b>ᴘʀᴇᴍɪᴜᴍ ᴇxᴘᴇʀɪᴇɴᴄᴇ</b>
+1️⃣ Send a photo → set thumbnail  
+2️⃣ Send a video → auto cover apply  
+3️⃣ /set_caption → custom caption (use {{filename}} for original name)  
+4️⃣ /extract → get thumbnail from video  
+5️⃣ Settings → full control panel  
 
-✔️ ᴜʟᴛʀᴀ ꜰᴀꜱᴛ ᴘʀᴏᴄᴇꜱꜱɪɴɢ  
-✔️ ᴄʟᴇᴀɴ & ᴍᴏᴅᴇʀɴ ᴜɪ  
-✔️ ꜱᴛᴀʙʟᴇ ꜱʏꜱᴛᴇᴍ  
-✔️ ɴᴏ ʟᴀɢ • ɴᴏ ᴅᴇʟᴀʏ  
+━━━━━━━━━━━━━━━━━━━━
+💎 PREMIUM FEATURES
 
-━━━━━━━━━━━━━━━━━━━
-🚀 <b>ᴘᴏᴡᴇʀ ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ</b>  
-👉 ᴛᴀᴘ ⚙️ ꜱᴇᴛᴛɪɴɢꜱ ᴛᴏ ᴜɴʟᴏᴄᴋ ᴀʟʟ ꜰᴇᴀᴛᴜʀᴇꜱ
+✔ Ultra fast processing  
+✔ Clean UI system  
+✔ 24/7 stability  
+✔ No delay system  
+
+━━━━━━━━━━━━━━━━━━━━
+🚀 Tap SETTINGS to control everything
 """
 
     await message.reply_photo(
         photo=START_PIC,
         caption=welcome,
-        parse_mode="HTML"
+        parse_mode="HTML",
+        reply_markup=get_start_buttons()
     )
 
 
 # =========================
-# ✅ START COMMAND
+# /START COMMAND
 # =========================
 @router.message(Command("start"))
 async def start_cmd(message: types.Message, bot: Bot):
+
     if await is_banned(message.from_user.id):
         return
 
@@ -112,36 +137,33 @@ async def start_cmd(message: types.Message, bot: Bot):
         message.from_user.first_name
     )
 
-    # 🔥 FORCE SUB CHECK
+    # FORCE SUB
     if AUTH_CHANNEL:
         btn = await is_subscribed(bot, message.from_user.id, AUTH_CHANNEL)
 
         if btn:
             btn.append([
-                InlineKeyboardButton("♻️ Refresh ♻️", callback_data="check_sub")
+                InlineKeyboardButton("♻️ REFRESH", callback_data="check_sub")
             ])
 
             await message.reply_photo(
                 photo="https://i.postimg.cc/xdkd1h4m/IMG-20250715-153124-952.jpg",
                 caption=(
-                    f"<b>👋 Hello {message.from_user.mention},\n\n"
-                    "To use this bot, you must join our updates channel first.\n\n"
-                    "1️⃣ Click on Join button\n"
-                    "2️⃣ Join the channel\n"
-                    "3️⃣ Then click Refresh\n\n"
-                    "⚠️ Otherwise you cannot use the bot!</b>"
+                    "<b>⚠️ You must join our channels to use this bot.</b>\n\n"
+                    "👉 Join all channels below\n"
+                    "👉 Then click Refresh button"
                 ),
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=btn),
                 parse_mode="HTML"
             )
             return
 
-    # ✅ যদি already join করা থাকে
+    # IF SUBSCRIBED
     await send_start(message)
 
 
 # =========================
-# ✅ CALLBACK HANDLER
+# CHECK SUB CALLBACK
 # =========================
 @router.callback_query(F.data == "check_sub")
 async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
@@ -149,25 +171,17 @@ async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
     btn = await is_subscribed(bot, query.from_user.id, AUTH_CHANNEL)
 
     if btn:
-        # ❌ join করে নাই
-        await query.answer(
-            "⚠️ You haven't joined all channels yet!",
-            show_alert=True
-        )
-    else:
-        # ✅ join হয়ে গেছে
-        await query.answer(
-            "✅ Thank you for joining!",
-            show_alert=True
-        )
+        await query.answer("⚠️ Please join all channels first!", show_alert=True)
+        return
 
-        await query.message.delete()
+    await query.answer("✅ Verified successfully!", show_alert=True)
 
-        # 🔥 AUTO CONTINUE
-        fake_message = query.message
-        fake_message.from_user = query.from_user
+    await query.message.delete()
 
-        await send_start(fake_message)
+    fake_message = query.message
+    fake_message.from_user = query.from_user
+
+    await send_start(fake_message)
         
 @router.callback_query(F.data == "about_cmd")
 async def about_handler(query: types.CallbackQuery, bot: Bot):
