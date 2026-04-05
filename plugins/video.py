@@ -50,6 +50,31 @@ async def save_thumb(message: types.Message):
     await set_thumbnail(message.from_user.id, message.photo[-1].file_id)
     await message.reply(small_caps("✅ thumbnail saved!"))
 
+from aiogram.filters import Command, CommandObject
+
+@router.message(Command("watermark"))
+async def set_wm_cmd(message: types.Message, command: CommandObject):
+    if await is_banned(message.from_user.id):
+        return
+
+    wm_text = command.args
+
+    if not wm_text:
+        return await message.reply(
+            "❌ Usage:\n<code>/watermark Your Text Here</code>",
+            parse_mode="HTML"
+        )
+
+    try:
+        await set_watermark(message.from_user.id, wm_text)
+
+        await message.reply(
+            f"✅ Watermark Saved:\n<code>{wm_text}</code>\n\n⚙️ Enable it from Settings",
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        await message.reply(f"❌ Error: {e}")
+
 # ✅ EXTRACT (FIXED FULL)
 @router.message(Command("extract"))
 async def extract_handler(message: types.Message, bot: Bot):
