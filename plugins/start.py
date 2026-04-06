@@ -1,12 +1,25 @@
 from aiogram import Router, types, F, Bot
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import *
-from database import add_user, is_banned
+from database import add_user, is_banned, get_user
 
 router = Router()
 
+
+# =========================
+# SMALL CAPS
+# =========================
+def small_caps(text):
+    mapping = {
+        "a":"ᴀ","b":"ʙ","c":"ᴄ","d":"ᴅ","e":"ᴇ","f":"ꜰ","g":"ɢ",
+        "h":"ʜ","i":"ɪ","j":"ᴊ","k":"ᴋ","l":"ʟ","m":"ᴍ","n":"ɴ",
+        "o":"ᴏ","p":"ᴘ","q":"ǫ","r":"ʀ","s":"s","t":"ᴛ",
+        "u":"ᴜ","v":"ᴠ","w":"ᴡ","x":"x","y":"ʏ","z":"ᴢ"
+    }
+    return "".join(mapping.get(c.lower(), c) for c in text)
+    
 
 # =========================
 # FORCE SUB CHECK
@@ -21,7 +34,11 @@ async def is_subscribed(bot: Bot, user_id: int, channels: list):
             if member.status in ["left", "kicked"]:
                 chat = await bot.get_chat(int(ch))
 
-                invite = chat.invite_link or f"https://t.me/{chat.username}" if chat.username else "https://t.me/PrimeXBots"
+                # FIXED LINK (no bug)
+                if chat.username:
+                    invite = f"https://t.me/{chat.username}"
+                else:
+                    invite = "https://t.me/PrimeXBots"
 
                 not_joined.append([
                     InlineKeyboardButton(
@@ -42,20 +59,7 @@ async def is_subscribed(bot: Bot, user_id: int, channels: list):
 
 
 # =========================
-# SMALL CAPS
-# =========================
-def small_caps(text):
-    mapping = {
-        "a":"ᴀ","b":"ʙ","c":"ᴄ","d":"ᴅ","e":"ᴇ","f":"ꜰ","g":"ɢ",
-        "h":"ʜ","i":"ɪ","j":"ᴊ","k":"ᴋ","l":"ʟ","m":"ᴍ","n":"ɴ",
-        "o":"ᴏ","p":"ᴘ","q":"ǫ","r":"ʀ","s":"s","t":"ᴛ",
-        "u":"ᴜ","v":"ᴠ","w":"ᴡ","x":"x","y":"ʏ","z":"ᴢ"
-    }
-    return "".join(mapping.get(c.lower(), c) for c in text)
-
-
-# =========================
-# START BUTTONS
+# START BUTTONS (UNCHANGED)
 # =========================
 def get_start_buttons():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -74,13 +78,12 @@ def get_start_buttons():
 
 
 # =========================
-# START MESSAGE
+# START MESSAGE (UNCHANGED)
 # =========================
 async def send_start(message: types.Message):
     user_mention = f"<a href='tg://user?id={message.from_user.id}'>{message.from_user.first_name}</a>"
 
-    welcome = f"""
-<b>🔥 ᴡᴇʟᴄᴏᴍᴇ {user_mention} ᴛᴏ ᴘʀɪᴍᴇ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇʀ ʙᴏᴛ 🔥</b>
+    welcome = f"""<b>🔥 ᴡᴇʟᴄᴏᴍᴇ {user_mention} ᴛᴏ ᴘʀɪᴍᴇ ᴄᴏᴠᴇʀ ᴄʜᴀɴɢᴇʀ ʙᴏᴛ 🔥</b>
 
 ━━━━━━━━━━━━━━━━━━━
 ✨ ᴀɴᴅ ᴀᴅᴠᴀɴᴄᴇᴅ ꜰᴇᴀᴛᴜʀᴇs ✨
@@ -112,7 +115,7 @@ async def send_start(message: types.Message):
   
 ━━━━━━━━━━━━━━━━━━━  
 🚀 <b>ᴘᴏᴡᴇʀ ᴄᴏɴᴛʀᴏʟ ᴘᴀɴᴇʟ</b>    
-👉 ᴛᴀᴘ ⚙️ ꜱᴇᴛᴛɪɴɢꜱ ᴛᴏ ᴜɴʟᴏᴄᴋ ᴀʟʟ ꜰᴇᴀᴛᴜʀᴇꜱ  
+👉 ᴛᴀᴘ ⚙️ ꜱᴇᴛᴛɪɴɢꜱ ᴛᴏ ᴜɴʟᴏᴄᴋ ᴀʟʟ ꜰᴇᴀᴛᴜʀᴇꜱ    
 """
 
     await message.reply_photo(
@@ -124,26 +127,24 @@ async def send_start(message: types.Message):
 
 
 # =========================
-# /START COMMAND
+# /START COMMAND (FIXED ONLY)
 # =========================
 @router.message(Command("start"))
 async def start_cmd(message: types.Message, bot: Bot):
 
-    if await is_banned(message.from_user.id):
+    user_id = message.from_user.id
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+
+    if await is_banned(user_id):
         return
 
     existing_user = await get_user(user_id)
     is_new_user = existing_user is None
 
-    await add_user(
-        message.from_user.id,
-        message.from_user.username,
-        message.from_user.first_name
-    )
-    user_id = message.from_user.id
-    username = message.from_user.username
-    first_name = message.from_user.first_name
+    await add_user(user_id, username, first_name)
 
+    # LOG (same)
     if is_new_user and LOG_CHANNEL:
         try:
             await bot.send_message(
@@ -154,11 +155,12 @@ async def start_cmd(message: types.Message, bot: Bot):
                      f"🔗 @{username or 'N/A'}",
                 parse_mode="HTML"
             )
-        except Exception:
+        except:
             pass
 
+    # FORCE SUB
     if AUTH_CHANNEL:
-        btn = await is_subscribed(bot, message.from_user.id, AUTH_CHANNEL)
+        btn = await is_subscribed(bot, user_id, AUTH_CHANNEL)
 
         if btn:
             btn.append([
@@ -177,19 +179,25 @@ async def start_cmd(message: types.Message, bot: Bot):
 
 
 # =========================
-# CHECK SUB
+# CHECK SUB (FIXED CLEAN)
 # =========================
 @router.callback_query(F.data == "check_sub")
 async def check_sub_callback(query: types.CallbackQuery, bot: Bot):
 
-    btn = await is_subscribed(bot, query.from_user.id, AUTH_CHANNEL)
+    user_id = query.from_user.id
+
+    btn = await is_subscribed(bot, user_id, AUTH_CHANNEL)
 
     if btn:
-        await query.answer("⚠️ Please join all channels first!", show_alert=True)
+        await query.answer("⚠️ ᴊᴏɪɴ ᴀʟʟ ᴄʜᴀɴɴᴇʟꜱ ꜰɪʀꜱᴛ!", show_alert=True)
         return
 
-    await query.answer("✅ Verified!", show_alert=True)
-    await query.message.delete()
+    await query.answer("✅ ᴠᴇʀɪꜰɪᴇᴅ!", show_alert=True)
+
+    try:
+        await query.message.delete()
+    except:
+        pass
 
     fake_message = query.message
     fake_message.from_user = query.from_user
