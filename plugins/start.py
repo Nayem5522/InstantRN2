@@ -132,11 +132,30 @@ async def start_cmd(message: types.Message, bot: Bot):
     if await is_banned(message.from_user.id):
         return
 
+    existing_user = await get_user(user_id)
+    is_new_user = existing_user is None
+
     await add_user(
         message.from_user.id,
         message.from_user.username,
         message.from_user.first_name
     )
+    user_id = message.from_user.id
+    username = message.from_user.username
+    first_name = message.from_user.first_name
+
+    if is_new_user and LOG_CHANNEL:
+        try:
+            await bot.send_message(
+                chat_id=LOG_CHANNEL,
+                text=f"👤 <b>ɴᴇᴡ ᴜsᴇʀ</b>\n\n"
+                     f"🆔 <code>{user_id}</code>\n"
+                     f"👤 {first_name}\n"
+                     f"🔗 @{username or 'N/A'}",
+                parse_mode="HTML"
+            )
+        except Exception:
+            pass
 
     if AUTH_CHANNEL:
         btn = await is_subscribed(bot, message.from_user.id, AUTH_CHANNEL)
